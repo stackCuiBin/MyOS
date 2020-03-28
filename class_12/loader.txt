@@ -1,0 +1,118 @@
+00009000  E94900            jmp word 0x904c
+00009003  0000              add [bx+si],al
+00009005  0000              add [bx+si],al
+00009007  0000              add [bx+si],al
+00009009  0000              add [bx+si],al
+0000900B  006900            add [bx+di+0x0],ch
+0000900E  0000              add [bx+si],al
+00009010  00984000          add [bx+si+0x40],bl
+00009014  FF                db 0xff
+00009015  7F00              jg 0x9017
+00009017  800B93            or byte [bp+di],0x93
+0000901A  40                inc ax
+0000901B  0014              add [si],dl
+0000901D  0000              add [bx+si],al
+0000901F  0000              add [bx+si],al
+00009021  90                nop
+00009022  40                inc ax
+00009023  0000              add [bx+si],al
+00009025  7C00              jl 0x9027
+00009027  0000              add [bx+si],al
+00009029  92                xchg ax,dx
+0000902A  40                inc ax
+0000902B  0027              add [bx],ah
+0000902D  0000              add [bx+si],al
+0000902F  0000              add [bx+si],al
+00009031  0000              add [bx+si],al
+00009033  00442E            add [si+0x2e],al
+00009036  54                push sp
+00009037  2E4F              cs dec di
+00009039  53                push bx
+0000903A  2100              and [bx+si],ax
+0000903C  48                dec ax
+0000903D  656C              gs insb
+0000903F  6C                insb
+00009040  6F                outsw
+00009041  20576F            and [bx+0x6f],dl
+00009044  726C              jc 0x90b2
+00009046  642100            and [fs:bx+si],ax
+00009049  0000              add [bx+si],al
+0000904B  008CC88E          add [si-0x7138],cl
+0000904F  D88EC08E          fmul dword [bp-0x7140]
+00009053  D0BC007C          sar byte [si+0x7c00],1
+00009057  66BED0900000      mov esi,0x90d0
+0000905D  66BF0C900000      mov edi,0x900c
+00009063  E84300            call word 0x90a9
+00009066  66BE34900000      mov esi,0x9034
+0000906C  66BF1C900000      mov edi,0x901c
+00009072  E83400            call word 0x90a9
+00009075  66B800000000      mov eax,0x0
+0000907B  8CD8              mov ax,ds
+0000907D  66C1E004          shl eax,byte 0x4
+00009081  660504900000      add eax,0x9004
+00009087  66A32E90          mov [0x902e],eax
+0000908B  0F01162C90        lgdt [0x902c]
+00009090  FA                cli
+00009091  E492              in al,0x92
+00009093  0C02              or al,0x2
+00009095  E692              out 0x92,al
+00009097  0F20C0            mov eax,cr0
+0000909A  6683C801          or eax,byte +0x1
+0000909E  0F22C0            mov cr0,eax
+000090A1  66EA000000000800  jmp dword 0x8:0x0
+000090A9  6650              push eax
+000090AB  66B800000000      mov eax,0x0
+000090B1  8CC8              mov ax,cs
+000090B3  66C1E004          shl eax,byte 0x4
+000090B7  6601F0            add eax,esi
+000090BA  67894702          mov [edi+0x2],ax
+000090BE  66C1E810          shr eax,byte 0x10
+000090C2  67884704          mov [edi+0x4],al
+000090C6  67886707          mov [edi+0x7],ah
+000090CA  6658              pop eax
+000090CC  C3                ret
+000090CD  0000              add [bx+si],al
+000090CF  0066B8            add [bp-0x48],ah
+000090D2  1000              adc [bx+si],al
+000090D4  8EE8              mov gs,ax
+000090D6  66B820008ED0      mov eax,0xd08e0020
+000090DC  66B818008ED8      mov eax,0xd88e0018
+000090E2  BD0000            mov bp,0x0
+000090E5  0000              add [bx+si],al
+000090E7  66BB0C00B60C      mov ebx,0xcb6000c
+000090ED  B221              mov dl,0x21
+000090EF  E81400            call word 0x9106
+000090F2  0000              add [bx+si],al
+000090F4  BD0800            mov bp,0x8
+000090F7  0000              add [bx+si],al
+000090F9  66BB0C00B60D      mov ebx,0xdb6000c
+000090FF  B21F              mov dl,0x1f
+00009101  E80200            call word 0x9106
+00009104  0000              add [bx+si],al
+00009106  EBFE              jmp short 0x9106
+00009108  55                push bp
+00009109  50                push ax
+0000910A  57                push di
+0000910B  6651              push ecx
+0000910D  6652              push edx
+0000910F  3E8A4D00          mov cl,[ds:di+0x0]
+00009113  80F900            cmp cl,0x0
+00009116  741A              jz 0x9132
+00009118  B85000            mov ax,0x50
+0000911B  0000              add [bx+si],al
+0000911D  F6E6              mul dh
+0000911F  00D0              add al,dl
+00009121  D1E0              shl ax,1
+00009123  89C7              mov di,ax
+00009125  88DC              mov ah,bl
+00009127  88C8              mov al,cl
+00009129  65668907          mov [gs:bx],eax
+0000912D  45                inc bp
+0000912E  FEC2              inc dl
+00009130  EBDD              jmp short 0x910f
+00009132  665A              pop edx
+00009134  6659              pop ecx
+00009136  5F                pop di
+00009137  58                pop ax
+00009138  5D                pop bp
+00009139  C3                ret
