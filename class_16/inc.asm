@@ -1,1 +1,59 @@
-; Segment AttributeDA_32    equ    0x4000DA_DR    equ    0x90DA_DRW   equ    0x92DA_DRWA  equ    0x93DA_C     equ    0x98DA_CR    equ    0x9ADA_CCO   equ    0x9CDA_CCOR  equ    0x9E; Segment PrivilegeDA_DPL0		equ	  0x00    ; DPL = 0DA_DPL1		equ	  0x20    ; DPL = 1DA_DPL2		equ	  0x40    ; DPL = 2DA_DPL3		equ	  0x60    ; DPL = 3; Special AttributeDA_LDT       equ    0x82DA_TaskGate  equ    0x85	; ÈÎÎñÃÅÀàĞÍÖµDA_386TSS    equ	0x89	; ¿ÉÓÃ 386 ÈÎÎñ×´Ì¬¶ÎÀàĞÍÖµDA_386CGate  equ	0x8C	; 386 µ÷ÓÃÃÅÀàĞÍÖµDA_386IGate  equ	0x8E	; 386 ÖĞ¶ÏÃÅÀàĞÍÖµDA_386TGate  equ	0x8F	; 386 ÏİÚåÃÅÀàĞÍÖµ; Selector AttributeSA_RPL0    equ    0SA_RPL1    equ    1SA_RPL2    equ    2SA_RPL3    equ    3SA_TIG    equ    0SA_TIL    equ    4; ÃèÊö·û; usage: Descriptor Base, Limit, Attr;        Base:  dd;        Limit: dd (low 20 bits available);        Attr:  dw (lower 4 bits of higher byte are always 0)%macro Descriptor 3	                          ; ¶Î»ùÖ·£¬ ¶Î½çÏŞ£¬ ¶ÎÊôĞÔ    dw    %2 & 0xFFFF                         ; ¶Î½çÏŞ1    dw    %1 & 0xFFFF                         ; ¶Î»ùÖ·1    db    (%1 >> 16) & 0xFF                   ; ¶Î»ùÖ·2    dw    ((%2 >> 8) & 0xF00) | (%3 & 0xF0FF) ; ÊôĞÔ1 + ¶Î½çÏŞ2 + ÊôĞÔ2    db    (%1 >> 24) & 0xFF                   ; ¶Î»ùÖ·3%endmacro                                     ; ¹² 8 ×Ö½Ú; ÃÅ; usage: Gate Selector, Offset, DCount, Attr;        Selector:  dw;        Offset:    dd;        DCount:    db;        Attr:      db%macro Gate 4    dw    (%2 & 0xFFFF)                      ; Æ«ÒÆµØÖ·1    dw    %1                                 ; Ñ¡Ôñ×Ó    dw    (%3 & 0x1F) | ((%4 << 8) & 0xFF00) ; ÊôĞÔ    dw    ((%2 >> 16) & 0xFFFF)              ; Æ«ÒÆµØÖ·2%endmacro 
+
+; Segment Attribute
+DA_32    equ    0x4000
+DA_DR    equ    0x90
+DA_DRW   equ    0x92
+DA_DRWA  equ    0x93
+DA_C     equ    0x98
+DA_CR    equ    0x9A
+DA_CCO   equ    0x9C
+DA_CCOR  equ    0x9E
+
+; Segment Privilege
+DA_DPL0		equ	  0x00    ; DPL = 0
+DA_DPL1		equ	  0x20    ; DPL = 1
+DA_DPL2		equ	  0x40    ; DPL = 2
+DA_DPL3		equ	  0x60    ; DPL = 3
+
+; Special Attribute
+DA_LDT       equ    0x82
+DA_TaskGate  equ    0x85	; ä»»åŠ¡é—¨ç±»å‹å€¼
+DA_386TSS    equ	0x89	; å¯ç”¨ 386 ä»»åŠ¡çŠ¶æ€æ®µç±»å‹å€¼
+DA_386CGate  equ	0x8C	; 386 è°ƒç”¨é—¨ç±»å‹å€¼
+DA_386IGate  equ	0x8E	; 386 ä¸­æ–­é—¨ç±»å‹å€¼
+DA_386TGate  equ	0x8F	; 386 é™·é˜±é—¨ç±»å‹å€¼
+
+; Selector Attribute
+SA_RPL0    equ    0
+SA_RPL1    equ    1
+SA_RPL2    equ    2
+SA_RPL3    equ    3
+
+SA_TIG    equ    0
+SA_TIL    equ    4
+
+; æè¿°ç¬¦
+; usage: Descriptor Base, Limit, Attr
+;        Base:  dd
+;        Limit: dd (low 20 bits available)
+;        Attr:  dw (lower 4 bits of higher byte are always 0)
+%macro Descriptor 3	                          ; æ®µåŸºå€ï¼Œ æ®µç•Œé™ï¼Œ æ®µå±æ€§
+    dw    %2 & 0xFFFF                         ; æ®µç•Œé™1
+    dw    %1 & 0xFFFF                         ; æ®µåŸºå€1
+    db    (%1 >> 16) & 0xFF                   ; æ®µåŸºå€2
+    dw    ((%2 >> 8) & 0xF00) | (%3 & 0xF0FF) ; å±æ€§1 + æ®µç•Œé™2 + å±æ€§2
+    db    (%1 >> 24) & 0xFF                   ; æ®µåŸºå€3
+%endmacro                                     ; å…± 8 å­—èŠ‚
+
+; é—¨
+; usage: Gate Selector, Offset, DCount, Attr
+;        Selector:  dw
+;        Offset:    dd
+;        DCount:    db
+;        Attr:      db
+%macro Gate 4
+    dw    (%2 & 0xFFFF)                      ; åç§»åœ°å€1
+    dw    %1                                 ; é€‰æ‹©å­
+    dw    (%3 & 0x1F) | ((%4 << 8) & 0xFF00) ; å±æ€§
+    dw    ((%2 >> 16) & 0xFFFF)              ; åç§»åœ°å€2
+%endmacro 

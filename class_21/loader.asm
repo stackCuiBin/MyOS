@@ -249,7 +249,7 @@ FUNCTION_SEGMENT:
 
 ; es:di --> data buffer 
 GetKernelDataFunc:  
-    mov cx, [esp + 4]
+    mov cx, [esp + 4]  ; 从栈中获取cs寄存器的值
     and cx, 0x0003
     mov ax, es
     and ax, 0xFFFC

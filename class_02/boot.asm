@@ -6,7 +6,7 @@ start:
     mov ds, ax
     mov es, ax
     
-    mov si, msg
+    mov si, msg ;msg段的地址赋值给si
     
 print:
     mov al, [si]
@@ -23,7 +23,7 @@ last:
     jmp last
     
 msg:
-    db 0x0a, 0x0a
+    db 0x0a, 0x0a   ;定义两个字节的数据(db: define byte)
     db "Hello, DTOS!"
     db 0x0a, 0x0a
     times 510-($-$$) db 0x00

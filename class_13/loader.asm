@@ -54,6 +54,7 @@ ENTRY_SEGMENT:
     mov ss, ax
     mov sp, TopOfStack16
     
+    ; 动态修改jmp段间跳转指令操作数的段基址
     mov [BACK_TO_REAL_MODE + 3], ax
     
     ; initialize GDT for 32 bits code segment
