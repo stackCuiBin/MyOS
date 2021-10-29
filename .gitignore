@@ -1,0 +1,7 @@
+data.img
+data.bin
+loader.bin
+a.out
+*.o
+*.dep
+
