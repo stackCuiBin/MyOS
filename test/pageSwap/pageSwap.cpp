@@ -4,19 +4,20 @@
  * @Author: Cuibb
  * @Date: 2021-10-29 16:58:01
  * @LastEditors: Cuibb
- * @LastEditTime: 2021-10-30 00:32:37
+ * @LastEditTime: 2021-10-30 18:03:04
  */
 
 #include <iostream>
 #include <string>
 #include <list>
-#include <vector>
 
 using namespace std;
 
-#define PAGE_NUM   (0xFF + 1)
-#define FRAME_NUM  (4)
-#define FP_NONE    (-1)
+#define PAGE_DIR_NUM  (0xF + 1)
+#define PAGE_SUB_NUM  (0xF + 1)
+#define PAGE_NUM      (PAGE_DIR_NUM * PAGE_SUB_NUM)
+#define FRAME_NUM     (4)
+#define FP_NONE       (-1)
 
 void PrintLog(string s)
 {
@@ -39,37 +40,49 @@ void PrintFatialErr(string s, int pid, int page)
 
 struct FrameItem
 {
-    int pid;
-    int page;
+    int pid;    // the task which use the frame
+    int pnum;   // the page which the frame hold
+    int ticks;  // the ticks to mark the usage frequency
 
     FrameItem()
     {
         pid = FP_NONE;
-        page = FP_NONE;
+        pnum = FP_NONE;
+        ticks = 0xFF;
     }
 };
 
 class PageTable
 {
-    int m_pt[PAGE_NUM];
+    int* m_pt[PAGE_DIR_NUM];
 
 public:
     PageTable()
     {
-        init();
-    }
-
-    void init()
-    {
-        for(int i = 0; i < length(); i++) {
-            m_pt[i] = FP_NONE;
+        for (int i = 0; i < PAGE_DIR_NUM; i++) {
+            m_pt[i] = NULL;
         }
     }
 
     int& operator [] (int i)
     {
         if ( (i >= 0) && (i < length()) ) {
-            return m_pt[i];
+            int dir = ((i & 0xF0) >> 4);
+            int sub = i & 0x0F;
+
+            if ( m_pt[dir] == NULL ) {
+                m_pt[dir] = new int[PAGE_SUB_NUM];
+
+                if ( m_pt[dir] != NULL ) {
+                    for (int j = 0; j < PAGE_SUB_NUM; j++) {
+                        m_pt[dir][j] = FP_NONE;
+                    }
+                } else {
+                    PrintFatialErr("Failed to allocate page table.", -1, -1);
+                }
+            }
+
+            return m_pt[dir][sub];
         } else {
             exit(-1);
         }
@@ -78,6 +91,13 @@ public:
     int length()
     {
         return PAGE_NUM;
+    }
+
+    ~PageTable()
+    {
+        for (int i = 0; i < PAGE_DIR_NUM; i++) {
+            delete[] m_pt[i];
+        }
     }
 };
 
@@ -109,11 +129,6 @@ public:
     PageTable& getPageTable()
     {
         return m_pageTable;
-    }
-
-    void initPageTable()
-    {
-        m_pageTable.init();
     }
 
     int getPID()
@@ -159,13 +174,14 @@ public:
 
 FrameItem FrameTable[FRAME_NUM];
 list<PCB*> TaskTable;
+list<int> FIFOMoveOut;
 
 int GetFrameItem()
 {
     int ret = FP_NONE;
 
     for (int i = 0; i < FRAME_NUM; i++) {
-        if ( FrameTable[i].page == FP_NONE ) {
+        if ( FrameTable[i].pid == FP_NONE ) {
             ret = i;
             break;
         }
@@ -174,34 +190,79 @@ int GetFrameItem()
     return ret;
 }
 
-int RandPage()
+void ClearFrameItem(int frame)
 {
-    int ret = rand() % FRAME_NUM;
     bool flag = false;
 
-    FrameTable[ret].pid = FP_NONE;
-    FrameTable[ret].page = FP_NONE;
+    PrintLog("Frame page content write back to disk...");
 
-    PrintLog("Random selete a frame to swap out...");
-    PrintLog("Frame page " + std::to_string(ret) + " content write back to disk...");
+    FrameTable[frame].pid = FP_NONE;
+    FrameTable[frame].pnum = FP_NONE;
+    FrameTable[frame].ticks = 0xFF;
 
     for (list<PCB*>::iterator iter = TaskTable.begin(); (iter != TaskTable.end()) && (flag == false); iter++) {
         PageTable& pt = (*iter)->getPageTable();
         for (int i = 0; i < pt.length(); i++) {
-            if ( pt[i] == ret ) {
+            if ( pt[i] == frame ) {
                 pt[i] = FP_NONE;
                 flag = true;
                 break;
             }
         }
     }
+}
 
-    return ret;
+int RandomFrame()
+{
+    int frame = rand() % FRAME_NUM;
+    
+    PrintLog("Selete random frame to swap out, frame " + std::to_string(frame));
+    
+    ClearFrameItem(frame);
+
+    return frame;
+}
+
+int FIFOFrame()
+{
+    int frame = FIFOMoveOut.front();
+
+    FIFOMoveOut.pop_front();
+
+    PrintLog("Selete FIFO frame to swap out, frame " + std::to_string(frame));
+
+    ClearFrameItem(frame);
+
+    return frame;
+}
+
+int LRUFrame()
+{
+    int frame = 0;
+    int ticks = FrameTable[frame].ticks;
+    string s = "";
+
+    for (int i = 0; i < FRAME_NUM; i++) {
+        s += "frame " + std::to_string(i) + " : " + std::to_string(FrameTable[i].ticks) + "     ";
+        if ( ticks > FrameTable[i].ticks ) {
+            ticks = FrameTable[i].ticks;
+            frame = i;
+        }
+    }
+
+    PrintLog(s);
+    PrintLog("Selete LRU frame to swap out, frame " + std::to_string(frame));
+
+    ClearFrameItem(frame);
+
+    return frame;
 }
 
 int SwapPage()
 {
-    return RandPage();
+    // return RandomFrame();
+    // return FIFOFrame();
+    return LRUFrame();
 }
 
 int RequestPage(int pid, int page)
@@ -224,7 +285,10 @@ int RequestPage(int pid, int page)
     PrintLog("Load content from disk to Frame " + std::to_string(frame));
 
     FrameTable[frame].pid = pid;
-    FrameTable[frame].page = page;
+    FrameTable[frame].pnum = page;
+    FrameTable[frame].ticks = 0xFF;
+
+    FIFOMoveOut.push_back(frame);
 
     return frame;
 }
@@ -251,17 +315,20 @@ void AccessPage(PCB& pcb)
                 PrintFatialErr("Failed to request page ...", pid, page);
             }
         }
+
+        FrameTable[pt[page]].ticks += 5;
     } else {
         PrintLog("Task-" + std::to_string(pid) + " is finished.");
     } 
 }
 
-void ReleasePage(int pid)
+void ReleaseFrameItem(int pid)
 {
     for (int i = 0; i < FRAME_NUM; i++) {
         if ( FrameTable[i].pid == pid ) {
             FrameTable[i].pid = FP_NONE;
-            FrameTable[i].page = FP_NONE;
+            FrameTable[i].pnum = FP_NONE;
+            FrameTable[i].ticks = 0xFF;
         }
     }
 }
@@ -281,9 +348,13 @@ int main()
         (*iter)->printSerial();
     }
 
-    PrintLog("=========== RUNNING ===========");
+    PrintLog("\n=========== RUNNING ===========\n");
 
     while(true) {
+        for (int i = 0; i < FRAME_NUM; i++) {
+            FrameTable[i].ticks--;
+        }
+
         if ( !TaskTable.empty() ) {
             for(list<PCB*>::iterator iter = TaskTable.begin(); iter != TaskTable.end(); ) {
                 PCB* pcb = *iter;
@@ -293,11 +364,9 @@ int main()
                     iter++;
                 } else {
                     PrintLog("Task-" + std::to_string(pcb->getPID()) + " is finished, release page.");
-                    
-                    pcb->initPageTable();
-                    ReleasePage(pcb->getPID());
-
+                    ReleaseFrameItem(pcb->getPID());
                     iter = TaskTable.erase(iter);
+                    delete pcb;
                 }
 
                 cin.get();
