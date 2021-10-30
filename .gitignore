@@ -1,7 +1,9 @@
 data.img
 data.bin
+boot.bin
 loader.bin
 a.out
 *.o
 *.dep
+loader.txt
 
