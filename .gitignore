@@ -2,7 +2,7 @@ data.img
 data.bin
 boot.bin
 loader.bin
-a.out
+*.out
 *.o
 *.dep
 loader.txt
