@@ -11,13 +11,12 @@ DIR_OBJS := objs
 
 DIRS := $(DIR_DEPS) $(DIR_EXES) $(DIR_OBJS)
 
+KERNEL_SRC := kmain.c screen.c
 KENTRY_SRC := kentry.asm
 BLFUNC_SRC := blfunc.asm
 BOOT_SRC   := boot.asm
 LOADER_SRC := loader.asm
 COMMON_SRC := common.asm
-
-KERNEL_SRC := kmain.c
 
 BOOT_OUT   := boot
 LOADER_OUT := loader
@@ -27,7 +26,7 @@ KENTRY_OUT := $(DIR_OBJS)/kentry.o
 EXE := kernel.out
 EXE := $(addprefix $(DIR_EXES)/, $(EXE))
 
-SRCS := $(wildcard *.c)
+SRCS := $(KERNEL_SRC)
 OBJS := $(SRCS:.c=.o)
 OBJS := $(addprefix $(DIR_OBJS)/, $(OBJS))
 DEPS := $(SRCS:.c=.dep)
@@ -67,10 +66,10 @@ $(KERNEL_OUT) : $(EXE)
 	sudo umount $(IMG_PATH)
 	
 $(EXE) : $(KENTRY_OUT) $(OBJS)
-	ld -m elf_i386 -s $^ -o $@
+	ld -s $^ -o $@
 	
 $(DIR_OBJS)/%.o : %.c
-	gcc -m32 -fno-builtin -fno-stack-protector -o $@ -c $(filter %.c, $^)
+	gcc -fno-builtin -fno-stack-protector -c $(filter %.c, $^) -o $@
 
 $(DIRS) :
 	mkdir $@
@@ -82,7 +81,7 @@ $(DIR_DEPS)/%.dep : %.c
 endif
 	@echo "Creating $@ ..."
 	@set -e; \
-	gcc -m32 -MM -E $(filter %.c, $^) | sed 's,\(.*\)\.o[ :]*,objs/\1.o $@ : ,g' > $@
+	gcc -MM -E $(filter %.c, $^) | sed 's,\(.*\)\.o[ :]*,objs/\1.o $@ : ,g' > $@
 	
 clean :
 	rm -fr $(IMG) $(BOOT_OUT) $(LOADER_OUT) $(KERNEL_OUT) $(DIRS)
