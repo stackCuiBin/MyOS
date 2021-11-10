@@ -1,6 +1,8 @@
 
 .PHONY : all clean rebuild
 
+KERNEL_SRC := kmain.c screen.c kernel.c global.c
+
 KERNEL_ADDR := B000
 IMG := D.T.OS
 IMG_PATH := /mnt/hgfs
@@ -11,7 +13,6 @@ DIR_OBJS := objs
 
 DIRS := $(DIR_DEPS) $(DIR_EXES) $(DIR_OBJS)
 
-KERNEL_SRC := kmain.c screen.c
 KENTRY_SRC := kentry.asm
 BLFUNC_SRC := blfunc.asm
 BOOT_SRC   := boot.asm
@@ -27,6 +28,7 @@ EXE := kernel.out
 EXE := $(addprefix $(DIR_EXES)/, $(EXE))
 
 SRCS := $(KERNEL_SRC)
+# SRCS := $(wildcard *.c)
 OBJS := $(SRCS:.c=.o)
 OBJS := $(addprefix $(DIR_OBJS)/, $(OBJS))
 DEPS := $(SRCS:.c=.dep)
