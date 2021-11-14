@@ -4,6 +4,7 @@
 
 org BaseOfBoot
 
+
 interface:
     BaseOfStack    equ    BaseOfBoot
     BaseOfTarget   equ    BaseOfLoader

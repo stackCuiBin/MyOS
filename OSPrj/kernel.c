@@ -1,3 +1,10 @@
+/*
+ * @Description: 
+ * @Author: Cuibb
+ * @Date: 2021-11-10 16:15:55
+ * @LastEditTime: 2021-11-10 22:13:13
+ * @LastEditors: Cuibb
+ */
 #include "kernel.h"
 
 int SetDescValue(Descriptor* pDesc, uint base, uint limit, ushort attr)
@@ -27,6 +34,34 @@ int GetDescValue(Descriptor* pDesc, uint* pBase, uint* pLimit, ushort* pAttr)
         *pLimit = ((pDesc->attr2_limit2 & 0xF) << 16) | pDesc->limit1;
         *pAttr  = ((pDesc->attr2_limit2 & 0xF0) << 8) | pDesc->attr1;
     } 
+    
+    return ret;
+}
+
+int SetIntHandler(Gate* pGate, uint ifunc)
+{
+    int ret = 0;
+    
+    if( ret = (pGate != NULL) )
+    {
+        pGate->offset1  = ifunc & 0xFFFF;
+        pGate->selector = GDT_CODE32_FLAT_SELECTOR;
+        pGate->dcount   = 0;
+        pGate->attr     = DA_386IGate + DA_DPL0;
+        pGate->offset2  = (ifunc >> 16) & 0xFFFF;
+    }
+    
+    return ret;
+}
+
+int GetIntHandler(Gate* pGate, uint* pIFunc)
+{
+    int ret = 0;
+    
+    if( ret = (pGate && pIFunc) )
+    {
+        *pIFunc = (pGate->offset2 << 16) | pGate->offset1;
+    }
     
     return ret;
 }

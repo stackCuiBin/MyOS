@@ -1,3 +1,10 @@
+/*
+ * @Description: 
+ * @Author: Cuibb
+ * @Date: 2021-11-10 16:15:55
+ * @LastEditTime: 2021-11-10 22:14:12
+ * @LastEditors: Cuibb
+ */
 
 #ifndef CONST_H
 #define CONST_H
@@ -63,5 +70,8 @@
 #define	LDT_VIDEO_SELECTOR     ((LDT_VIDEO_INDEX << 3) + SA_TIL + SA_RPL3)	
 #define	LDT_CODE32_SELECTOR    ((LDT_CODE32_INDEX << 3) + SA_TIL + SA_RPL3)	
 #define	LDT_DATA32_SELECTOR    ((LDT_DATA32_INDEX << 3) + SA_TIL + SA_RPL3)	
+
+#define MASTER_EOI_PORT     0x20
+#define SLAVE_EOI_PORT      0xA0
 
 #endif
