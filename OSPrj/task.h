@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-14 21:20:33
- * @LastEditTime: 2021-11-15 16:55:59
+ * @LastEditTime: 2021-11-15 21:30:18
  * @LastEditors: Cuibb
  */
 
@@ -49,6 +49,7 @@ typedef struct
     Descriptor ldt[3];
     ushort     ldtSelector;
     ushort     tssSelector;
+    void       (*tmain)();
     uint       id;
     char       name[8]; 
     byte       stack[512];
@@ -66,5 +67,6 @@ extern void (* const LoadTask)(volatile Task* pt);
 void TaskModInit();
 void LaunchTask();
 void Schedule();
+void KillTask();
 
 #endif
