@@ -6,7 +6,7 @@
  * @LastEditors: Cuibb
  */
 
-#include "kernel.h"
+#include "const.h"
 #include "screen.h"
 
 static byte gPosW = 0;

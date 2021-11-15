@@ -151,6 +151,7 @@ InitDescItem:
 ;
 StoreGlobal:
     mov dword [RunTaskEntry], RunTask
+    mov dword [LoadTaskEntry], LoadTask
     mov dword [InitInterruptEntry], InitInterrupt
     mov dword [EnableTimerEntry], EnableTimer
     mov dword [SendEOIEntry], SendEOI
@@ -275,8 +276,8 @@ RunTask:
     
     mov esp, [ebp + 8]
     
-    lldt word [esp + 200]
-    ltr word [esp + 202]
+    lldt word [esp + 96]
+    ltr word [esp + 98]
     
     pop gs
     pop fs
@@ -289,6 +290,20 @@ RunTask:
     
     iret
     
+; void LoadTask(Task* pt);
+;
+LoadTask:
+    push ebp
+    mov ebp, esp
+    
+    mov eax, [ebp + 8]
+    
+    lldt word [eax + 96]
+    
+    leave
+    
+    ret
+       
 ;
 ;
 InitInterrupt:

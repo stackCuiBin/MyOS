@@ -2018,3 +2018,34 @@
 	关键点
 		中断服务程序成功保存任务上下文后，esp指向当前任务数据结构的起始位置；因此，中断返回时，
 		只要esp指向任务数据结构的起始位置，就能恢复任务上下文。
+
+第46课 多进程并行执行-上
+	方案思路
+		在中断服务程序中改变gCTaskAddr的值
+			注：gCTaskAddr指向当前执行中任务的Task结构
+		
+		中断服务程序：
+			保存当前执行任务的上下文  ->  改变gCTaskAddr的值  ->  根据gCTaskAddr指向的Task结构体恢复任务上下文
+			     BeginISR                IntHandler                   EndISR
+
+		   
+第47课 多进程并行执行-下
+	代码重构
+	新增模块说明
+		utility
+			内核通用功能函数（宏）模块
+		task
+			任务模块，涉及任务定义与实现，任务调度，等
+		interrupt
+			中断模块，涉及中断控制，中断服务程序实现，等
+
+	模块架构图
+				   内核
+			       kmain
+		task      interrupt
+		screen    kernel      utility
+		type      const       kentry
+		------------------------------
+		          BOOTLOADER
+		------------------------------
+		             BIOS
