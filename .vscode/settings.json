@@ -45,6 +45,8 @@
         "random": "cpp",
         "string": "cpp",
         "list.h": "c",
-        "utility.h": "c"
+        "utility.h": "c",
+        "app.h": "c",
+        "type.h": "c"
     }
 }

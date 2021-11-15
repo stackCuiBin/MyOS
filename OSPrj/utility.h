@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-14 21:22:03
- * @LastEditTime: 2021-11-15 14:51:37
+ * @LastEditTime: 2021-11-15 23:35:13
  * @LastEditors: Cuibb
  */
 
@@ -27,5 +27,6 @@
 })
 
 void Delay(int n);
+char* StrnCpy(char* dist, const char* src, int len);
 
 #endif // UTILITY_H

@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-14 21:20:33
- * @LastEditTime: 2021-11-15 21:30:18
+ * @LastEditTime: 2021-11-16 00:43:17
  * @LastEditors: Cuibb
  */
 
@@ -51,6 +51,8 @@ typedef struct
     ushort     tssSelector;
     void       (*tmain)();
     uint       id;
+    ushort     current; /* 已执行时间数 */
+    ushort     total;  /* 执行的总时间数 */
     char       name[8]; 
     byte       stack[512];
 } Task;
