@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-10 16:15:55
- * @LastEditTime: 2021-11-10 22:13:46
+ * @LastEditTime: 2021-11-15 17:18:15
  * @LastEditors: Cuibb
  */
 
@@ -138,26 +138,27 @@ int PrintString(const char* s)
 
 int PrintIntHex(uint n)
 {
-    char hex[11] = {'0', 'x', 0};
     int i = 0;
+    int ret = 0;
+
+    ret += PrintChar('0');
+    ret += PrintChar('x');
     
-    for(i=9; i>=2; i--)
+    for(i=28; i>=0; i-=4)
     {
-        int p = n & 0xF;
+        int p = (n >> i) & 0xF;
         
         if( p < 10 )
         {
-            hex[i] = ('0' + p);
+            ret += PrintChar('0' + p);
         }
         else
         {
-            hex[i] = ('A' + p - 10);
+            ret += PrintChar('A' + p - 10);
         }
-        
-        n = n >> 4;
     }
     
-    return PrintString(hex);
+    return ret;
 }
 
 int PrintIntDec(int n)

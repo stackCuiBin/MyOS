@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-14 21:32:18
- * @LastEditTime: 2021-11-14 21:42:31
+ * @LastEditTime: 2021-11-15 17:44:16
  * @LastEditors: Cuibb
  */
 
@@ -10,7 +10,7 @@
 #define IHANDLER_H
 
 #define DeclHandler(name)    void name##Entry(); \
-                             void name()
+                             void name();
                              
 DeclHandler(TimerHandler);
 

@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-10 16:15:55
- * @LastEditTime: 2021-11-10 22:13:33
+ * @LastEditTime: 2021-11-15 17:46:44
  * @LastEditors: Cuibb
  */
 
@@ -30,9 +30,11 @@ void KMain()
     PrintIntDec((uint)gIdtInfo.size);
     PrintChar('\n');
     
-    IntModInit();
-    
     TaskModInit();
     
+    /* 中断初始化延后，在任务初始化完成后再使能中断 */
+    IntModInit();
+    
     LaunchTask();
+
 }
