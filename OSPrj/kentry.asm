@@ -3,9 +3,13 @@
 global _start
 global TimerHandlerEntry
 global SysCallHandlerEntry
+global PageFaultHandlerEntry
+global SegmentFaultHandlerEntry
 
 extern TimerHandler
 extern SysCallHandler
+extern PageFaultHandler
+extern SegmentFaultHandler
 
 extern gCTaskAddr
 extern gGdtInfo
@@ -18,9 +22,30 @@ extern LoadTask
 extern KMain
 extern ClearScreen
 
+%macro BeginFSR 0
+    cli 
+    
+    pushad
+    
+    push ds
+    push es
+    push fs
+    push gs
+    
+    mov dx, ss
+    mov ds, dx
+    mov es, dx
+    
+    mov esp, BaseOfLoader
+%endmacro
+
 ; 0 表示没有输入参数
 ; esp减4是因为有四个字节暂时没有用到（RegValue）
 %macro BeginISR 0
+    ; 屏蔽外部中断，先不支持嵌套
+    ; 进中断会保存eflags寄存器，这里修改并不会影响中断外
+    cli
+
     sub esp, 4
     
     pushad
@@ -48,7 +73,7 @@ extern ClearScreen
     popad
     
     add esp, 4
-    
+
     iret
 %endmacro
 
@@ -112,4 +137,18 @@ BeginISR
     push ax
     call SysCallHandler
     pop ax
+EndISR
+
+;
+;
+PageFaultHandlerEntry:
+BeginFSR
+    call PageFaultHandler
+EndISR
+
+;
+;
+SegmentFaultHandlerEntry:
+BeginFSR
+    call SegmentFaultHandler
 EndISR

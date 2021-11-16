@@ -25,7 +25,7 @@ typedef struct {
     uint edx;
     uint ecx;
     uint eax;
-    uint raddr;
+    uint error_code;
     uint eip;
     uint cs;
     uint eflags;

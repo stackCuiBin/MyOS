@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-10 16:15:55
- * @LastEditTime: 2021-11-10 22:13:13
+ * @LastEditTime: 2021-11-16 23:11:56
  * @LastEditors: Cuibb
  */
 #include "kernel.h"
@@ -41,4 +41,21 @@ int GetDescValue(Descriptor* pDesc, uint* pBase, uint* pLimit, ushort* pAttr)
     return ret;
 }
 
+void ConfigPageTable()
+{
+    uint* TblBase = (void*)PageTblBase;
+    uint  index = BaseOfApp / 0x1000 - 1;
+    uint  i = 0;
+    
+    /* 修改子页表项的R/W属性 */
+    for(i=0; i<=index; i++)
+    {
+        uint* addr = TblBase + i;
+        uint  value = *addr;
+        
+        value = value & 0xFFFFFFFD;
+        
+        *addr = value;
+    }
+}
 

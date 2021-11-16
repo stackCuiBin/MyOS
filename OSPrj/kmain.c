@@ -39,6 +39,8 @@ void KMain()
     /* 中断初始化延后，在任务初始化完成后再使能中断 */
     IntModInit();
     
+    ConfigPageTable();
+    
     LaunchTask();
 
 }

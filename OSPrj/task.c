@@ -28,13 +28,15 @@ void (* const RunTask)(volatile Task* pt) = NULL;
 void (* const LoadTask)(volatile Task* pt) = NULL;
 
 volatile Task* gCTaskAddr = NULL;
-static TaskNode gTaskBuff[MAX_TASK_NUM] = {0};
+// static TaskNode gTaskBuff[MAX_TASK_NUM] = {0};
+static TaskNode* gTaskBuff = NULL;
 static Queue gFreeTaskNode = {0};
 static Queue gReadyTask = {0};
 static Queue gRunningTask = {0};
 static Queue gWaittingTask = {0};
 static TSS gTSS = {0};
-static TaskNode gIdleTask = {0};
+// static TaskNode gIdleTask = {0};
+static TaskNode* gIdleTask = NULL;
 static uint gAppToRunIndex = 0;
 static uint gPid = PID_BASE;
 
@@ -53,19 +55,7 @@ static void TaskEntry()
 
 static void IdleTask()
 {
-    int i = 0;
-    
-    SetPrintPos(0, 10);
-    
-    PrintString(__FUNCTION__);
-    
-    while( 1 )
-    {
-        SetPrintPos(10, 10);
-        PrintChar('A' + i);
-        i = (i + 1) % 26;
-        Delay(1);
-    }
+    while( 1 );
 }
 
 static void InitTask(Task* pt, uint id, const char* name, void(*entry)(), byte pri)
@@ -89,8 +79,8 @@ static void InitTask(Task* pt, uint id, const char* name, void(*entry)(), byte p
     StrnCpy(pt->name, name, sizeof(pt->name)-1);
     
     SetDescValue(AddrOff(pt->ldt, LDT_VIDEO_INDEX),  0xB8000, 0x07FFF, DA_DRWA + DA_32 + DA_DPL3);
-    SetDescValue(AddrOff(pt->ldt, LDT_CODE32_INDEX), 0x00,    0xFFFFF, DA_C + DA_32 + DA_DPL3);
-    SetDescValue(AddrOff(pt->ldt, LDT_DATA32_INDEX), 0x00,    0xFFFFF, DA_DRW + DA_32 + DA_DPL3);
+    SetDescValue(AddrOff(pt->ldt, LDT_CODE32_INDEX), 0x00,    0x4FFFF, DA_C + DA_32 + DA_DPL3);
+    SetDescValue(AddrOff(pt->ldt, LDT_DATA32_INDEX), 0x00,    0x4FFFF, DA_DRW + DA_32 + DA_DPL3);
     
     pt->ldtSelector = GDT_TASK_LDT_SELECTOR;
     pt->tssSelector = GDT_TASK_TSS_SELECTOR;
@@ -132,9 +122,9 @@ static void CreateTask()
 static void CheckRunningTask()
 {
     if ( Queue_Length(&gRunningTask) == 0 ) {
-        Queue_Add(&gRunningTask, (QueueNode*)&gIdleTask);
+        Queue_Add(&gRunningTask, (QueueNode*)gIdleTask);
     } else if ( Queue_Length(&gRunningTask) > 1 ) {
-        if ( IsEqual(Queue_Front(&gRunningTask), (QueueNode*)&gIdleTask) ) {
+        if ( IsEqual(Queue_Front(&gRunningTask), (QueueNode*)gIdleTask) ) {
             Queue_Remove(&gRunningTask);
         }
     }
@@ -160,7 +150,7 @@ static void RunningToReady()
     if ( Queue_Length(&gRunningTask) > 0 ) {
         TaskNode* tn = (TaskNode*)Queue_Front(&gRunningTask);
 
-        if ( !IsEqual(tn, &gIdleTask) ) {
+        if ( !IsEqual(tn, gIdleTask) ) {
             if ( tn->task.current >= tn->task.total ) {
                 Queue_Remove(&gRunningTask);
                 Queue_Add(&gReadyTask, (QueueNode*)tn);
@@ -172,6 +162,10 @@ static void RunningToReady()
 void TaskModInit()
 {
     int i = 0;
+    
+    gTaskBuff = (void*)0x40000;
+    
+    gIdleTask = (void*)AddrOff(gTaskBuff, MAX_TASK_NUM);
     
     GetAppToRun = (void*)(*((uint*)GetAppToRunEntry));
     GetAppNum = (void*)(*((uint*)GetAppNumEntry));
@@ -187,7 +181,7 @@ void TaskModInit()
 
     SetDescValue(AddrOff(gGdtInfo.entry, GDT_TASK_TSS_INDEX), (uint)&gTSS, sizeof(gTSS)-1, DA_386TSS + DA_DPL0);
     
-    InitTask(&gIdleTask.task, 0, "IdleTask", IdleTask, 255);
+    InitTask(&gIdleTask->task, 0, "IdleTask", IdleTask, 255);
 
     ReadyToRunning();
     CheckRunningTask();
