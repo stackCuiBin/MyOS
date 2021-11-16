@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-15 23:00:32
- * @LastEditTime: 2021-11-16 00:40:13
+ * @LastEditTime: 2021-11-16 09:29:23
  * @LastEditors: Cuibb
  */
 
@@ -33,9 +33,9 @@ static void RegApp(const char* name, void (*tmain)(), byte pri)
     }
 }
 
-void AppModInit()
+void AppMain()
 {
-    RegApp("Task A", TaskA, 250);
+    RegApp("Task A", TaskA, 255);
     RegApp("Task B", TaskB, 230);
     RegApp("Task C", TaskC, 230);
     RegApp("Task D", TaskD, 255);
@@ -51,10 +51,12 @@ AppInfo* GetAppToRun(uint index)
     
     return ret;
 }
+
 uint GetAppNum()
 {
     return gAppNum;
 }
+
 
 void TaskA()
 {

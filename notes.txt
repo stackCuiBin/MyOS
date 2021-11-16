@@ -2124,3 +2124,28 @@
 		解决方案
 			为每个任务提供优先级，使得每个任务均有机会执行
 			优先级的高低决定任务执行时间的长短
+
+第53课 内核与应用的分离-上
+	重新架构
+					应用程序
+		TaskA  TaskB  TaskC  ...
+		-----------------------------
+					内核
+			        kmain
+		interrupt   task     queue   list       
+		screen      kernel   utility
+		type        const    kentry
+		------------------------------
+		          BOOTLOADER
+		------------------------------
+		             BIOS
+
+	重构方案
+		将应用代码和内核代码分离
+		在实模式下分别加载应用和内核到不同内存区域
+		进入保护模式并跳转到内核代码执行
+	具体实现
+		修改LoaderTarget函数，用参数替代全局变量
+		创建App入口文件aentry.asm(定义入口函数)
+		修改makefile分开编译kernel和app
+		修改task.c通过共享内存区获取APP接口

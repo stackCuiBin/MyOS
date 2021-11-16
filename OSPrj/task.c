@@ -2,18 +2,27 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-14 21:20:47
- * @LastEditTime: 2021-11-16 00:58:43
+ * @LastEditTime: 2021-11-16 21:44:25
  * @LastEditors: Cuibb
  */
 
 #include "utility.h"
 #include "task.h"
-#include "app.h"
 
-#define MAX_TASK_NUM          4
-#define MAX_RUNNING_TASK      2
-#define MAX_READY_TASK        (MAX_TASK_NUM - MAX_RUNNING_TASK)
-#define BASE_PID              0x10
+#define MAX_TASK_NUM        4
+#define MAX_RUNNING_TASK    2
+#define MAX_READY_TASK      (MAX_TASK_NUM - MAX_RUNNING_TASK)
+#define PID_BASE            0x10
+
+typedef struct
+{
+    const char* name;
+    void (*tmain)();
+    byte priority;
+} AppInfo;
+
+static AppInfo* (*GetAppToRun)(uint index) = NULL;
+static uint (*GetAppNum)() = NULL;
 
 void (* const RunTask)(volatile Task* pt) = NULL;
 void (* const LoadTask)(volatile Task* pt) = NULL;
@@ -21,13 +30,13 @@ void (* const LoadTask)(volatile Task* pt) = NULL;
 volatile Task* gCTaskAddr = NULL;
 static TaskNode gTaskBuff[MAX_TASK_NUM] = {0};
 static Queue gFreeTaskNode = {0};
-static Queue gRunningTask = {0};
 static Queue gReadyTask = {0};
+static Queue gRunningTask = {0};
 static Queue gWaittingTask = {0};
 static TSS gTSS = {0};
 static TaskNode gIdleTask = {0};
 static uint gAppToRunIndex = 0;
-static uint gpid = BASE_PID;
+static uint gPid = PID_BASE;
 
 static void TaskEntry()
 {
@@ -42,7 +51,7 @@ static void TaskEntry()
     );
 }
 
-void IdleTask()
+static void IdleTask()
 {
     int i = 0;
     
@@ -109,7 +118,7 @@ static void CreateTask()
         if ( tn ) {
             AppInfo* app = GetAppToRun(gAppToRunIndex);
 
-            InitTask(&tn->task, gpid++, app->name, app->tmain, app->priority);
+            InitTask(&tn->task, gPid++, app->name, app->tmain, app->priority);
 
             Queue_Add(&gReadyTask, (QueueNode*)tn);
 
@@ -148,12 +157,14 @@ static void ReadyToRunning()
 
 static void RunningToReady()
 {
-    TaskNode* tn = (TaskNode*)Queue_Front(&gRunningTask);
+    if ( Queue_Length(&gRunningTask) > 0 ) {
+        TaskNode* tn = (TaskNode*)Queue_Front(&gRunningTask);
 
-    if ( !IsEqual(tn, &gIdleTask) ) {
-        if ( tn->task.current >= tn->task.total ) {
-            Queue_Remove(&gRunningTask);
-            Queue_Add(&gReadyTask, (QueueNode*)tn);
+        if ( !IsEqual(tn, &gIdleTask) ) {
+            if ( tn->task.current >= tn->task.total ) {
+                Queue_Remove(&gRunningTask);
+                Queue_Add(&gReadyTask, (QueueNode*)tn);
+            }
         }
     }
 }
@@ -161,10 +172,13 @@ static void RunningToReady()
 void TaskModInit()
 {
     int i = 0;
-
+    
+    GetAppToRun = (void*)(*((uint*)GetAppToRunEntry));
+    GetAppNum = (void*)(*((uint*)GetAppNumEntry));
+    
     Queue_Init(&gFreeTaskNode);
-    Queue_Init(&gReadyTask);
     Queue_Init(&gRunningTask);
+    Queue_Init(&gReadyTask);
     Queue_Init(&gWaittingTask);
 
     for (i = 0; i < MAX_TASK_NUM; i++) {
@@ -191,9 +205,13 @@ void LaunchTask()
 void Schedule()
 {
     RunningToReady();
+
     ReadyToRunning();
+
     CheckRunningTask();
+    
     Queue_Rotate(&gRunningTask);
+    
     gCTaskAddr = &(((TaskNode*)Queue_Front(&gRunningTask))->task);
     
     PrepareForRun(gCTaskAddr);

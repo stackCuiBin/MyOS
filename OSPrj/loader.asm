@@ -1,13 +1,15 @@
+
 %include "blfunc.asm"
 %include "common.asm"
 
 org BaseOfLoader
 
-interface:
-    BaseOfStack    equ    BaseOfLoader
-    BaseOfTarget   equ    BaseOfKernel
-    Target db  "KERNEL     "
-    TarLen equ ($-Target)
+BaseOfStack    equ    BaseOfLoader
+
+Kernel db  "KERNEL     "
+KnlLen equ ($-Kernel)
+App    db  "APP        "
+AppLen equ ($-App)
 
 [section .gdt]
 ; GDT definition
@@ -84,12 +86,40 @@ BLMain:
     add eax, IDT_ENTRY
     mov dword [IdtPtr + 2], eax
     
+    ; load app
+    push word Buffer
+    push word BaseOfApp / 0x10
+    push word BaseOfApp
+    push word AppLen
+    push word App
+    
     call LoadTarget
-	
-	cmp dx, 0
-	jz output
-	
-	call StoreGlobal
+    
+    add sp, 10
+    
+    cmp dx, 0
+    jz AppErr
+    
+    
+    ; restore es register
+    mov ax, cs
+    mov es, ax
+    
+    ; load kernel
+    push word Buffer
+    push word BaseOfKernel / 0x10
+    push word BaseOfKernel
+    push word KnlLen
+    push word Kernel
+    
+    call LoadTarget
+    
+    add sp, 10
+    
+    cmp dx, 0
+    jz KernelErr
+    
+    call StoreGlobal
 
     ; 1. load GDT
     lgdt [GdtPtr]
@@ -122,12 +152,22 @@ BLMain:
     ; 5. jump to 32 bits code
     jmp dword Code32Selector : 0
 
-output:	
-    mov bp, ErrStr
-    mov cx, ErrLen
-	call Print
-	
-	jmp $
+AppErr:    
+    mov bp, NoApp
+    mov cx, NALen
+    jmp output
+KernelErr:
+    mov bp, NoKernel
+    mov cx, NKLen
+output:
+    mov ax, cs
+    mov es, ax
+    mov dx, 0
+    mov ax, 0x1301
+    mov bx, 0x0007
+    int 0x10
+    
+    jmp $
 
 ; esi    --> code segment label
 ; edi    --> descriptor label
@@ -410,7 +450,9 @@ DefaultHandler    equ    DefaultHandlerFunc - $$
 
 Code32SegLen    equ    $ - CODE32_SEGMENT
 
-ErrStr db  "No KERNEL"	
-ErrLen equ ($-ErrStr)
+NoKernel db  "No KERNEL"    
+NKLen    equ ($-NoKernel)
+NoApp    db  "No APP"    
+NALen    equ ($-NoApp)
 
 Buffer db  0
