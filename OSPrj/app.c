@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-15 23:00:32
- * @LastEditTime: 2021-11-16 23:18:18
+ * @LastEditTime: 2021-11-30 00:24:03
  * @LastEditors: Cuibb
  */
 
@@ -61,16 +61,10 @@ uint GetAppNum()
 void TaskA()
 {
     int i = 0;
-    uint* p = (uint*)0xE000;
     
     SetPrintPos(0, 12);
     
     PrintString(__FUNCTION__);
-    
-    *p = 1000;
-    
-    // PrintIntDec(*p);
-    
     
     while( i < 5 )
     {

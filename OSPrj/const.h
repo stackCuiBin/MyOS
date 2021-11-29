@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-10 16:15:55
- * @LastEditTime: 2021-11-10 22:14:12
+ * @LastEditTime: 2021-11-30 00:15:49
  * @LastEditors: Cuibb
  */
 
@@ -12,10 +12,12 @@
 #define NULL  ((void*)0)
 
 #define PageDirBase     0x50000
-#define PageTblBase     0x51000
+#define PageTblBase     (PageDirBase + 0x1000)
 
 #define BaseOfKernel    0xB000
 #define BaseOfApp       0xF000
+
+#define AppStackSize    512
 
 #define BaseOfSharedMemory 0xA000
 #define GetAppToRunEntry   (BaseOfSharedMemory + 36)

@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-14 21:20:33
- * @LastEditTime: 2021-11-16 00:43:17
+ * @LastEditTime: 2021-11-30 01:14:57
  * @LastEditors: Cuibb
  */
 
@@ -54,7 +54,7 @@ typedef struct
     ushort     current; /* 已执行时间数 */
     ushort     total;  /* 执行的总时间数 */
     char       name[8]; 
-    byte       stack[512];
+    byte*      stack;
 } Task;
 
 typedef struct 
