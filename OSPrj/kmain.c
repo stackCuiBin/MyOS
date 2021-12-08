@@ -2,13 +2,14 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-10 16:15:55
- * @LastEditTime: 2021-11-16 00:10:39
+ * @LastEditTime: 2021-12-09 02:12:54
  * @LastEditors: Cuibb
  */
 
 #include "task.h"
 #include "interrupt.h"
 #include "screen.h"
+#include "memory.h"
 
 void KMain()
 {
@@ -32,6 +33,8 @@ void KMain()
     PrintIntDec((uint)gIdtInfo.size);
     PrintChar('\n');
     
+    MemModInit((byte*)KernelHeapBase, HeapSize);
+
     AppModInit();
 
     TaskModInit();

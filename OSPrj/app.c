@@ -2,12 +2,13 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-15 23:00:32
- * @LastEditTime: 2021-11-30 00:24:03
+ * @LastEditTime: 2021-12-09 02:23:03
  * @LastEditors: Cuibb
  */
 
 #include "app.h"
 #include "utility.h"
+#include "memory.h"
 
 #define MAX_APP_NUM       16
 
@@ -36,9 +37,9 @@ static void RegApp(const char* name, void (*tmain)(), byte pri)
 void AppMain()
 {
     RegApp("Task A", TaskA, 255);
-    RegApp("Task B", TaskB, 230);
-    RegApp("Task C", TaskC, 230);
-    RegApp("Task D", TaskD, 255);
+    // RegApp("Task B", TaskB, 230);
+    // RegApp("Task C", TaskC, 230);
+    // RegApp("Task D", TaskD, 255);
 }
 
 AppInfo* GetAppToRun(uint index)
@@ -65,16 +66,17 @@ void TaskA()
     SetPrintPos(0, 12);
     
     PrintString(__FUNCTION__);
+    PrintChar('\n');
     
-    while( i < 5 )
-    {
-        SetPrintPos(8, 12);
-        PrintChar('A' + i);
-        i = (i + 1) % 26;
-        Delay(1);
-    }
+    uint* p = (uint*)Malloc(sizeof(uint) * 10);
 
-    SetPrintPos(8, 12);
+    PrintIntHex(p);
+    PrintChar('\n');
+    *p = 666;
+    PrintIntDec(*p);
+    PrintChar('\n');
+
+    Free(p);
 }
 
 void TaskB()

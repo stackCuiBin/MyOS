@@ -6,4 +6,5 @@ loader.bin
 *.o
 *.dep
 loader.txt
+test.c
 

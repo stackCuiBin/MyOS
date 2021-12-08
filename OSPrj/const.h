@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-10 16:15:55
- * @LastEditTime: 2021-11-30 00:15:49
+ * @LastEditTime: 2021-12-09 01:53:29
  * @LastEditors: Cuibb
  */
 
@@ -11,7 +11,11 @@
 
 #define NULL  ((void*)0)
 
-#define PageDirBase     0x50000
+#define HeapBase        0x70000
+#define HeapSize        0x20000
+#define KernelHeapBase  HeapBase
+#define AppHeapBase     (HeapBase - HeapSize)
+#define PageDirBase     (HeapBase + HeapSize)
 #define PageTblBase     (PageDirBase + 0x1000)
 
 #define BaseOfKernel    0xB000
