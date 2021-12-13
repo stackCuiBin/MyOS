@@ -2,12 +2,16 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-14 21:32:32
- * @LastEditTime: 2021-11-15 21:38:53
+ * @LastEditTime: 2021-12-14 02:33:00
  * @LastEditors: Cuibb
  */
 
 #include "interrupt.h"
 #include "task.h"
+#include "mutex.h"
+
+#define TYPE_KILL_TASK   0
+#define TYPE_MUTEX_OPT   1
 
 extern volatile Task* gCTaskAddr;
 
@@ -25,10 +29,20 @@ void TimerHandler()
     SendEOI(MASTER_EOI_PORT);
 }
 
-void SysCallHandler(ushort ax)   // __cdecl__
+void SysCallHandler(uint type, uint cmd, uint param1, uint param2)   // __cdecl__
 {
-    if ( ax == 0 ) {
-        KillTask();
+    switch(type)
+    {
+        case TYPE_KILL_TASK:
+            KillTask();
+            break;
+
+        case TYPE_MUTEX_OPT:
+            MutexCallHandler(cmd, param1);
+            break;
+
+        default:
+            break;
     }
 }
 

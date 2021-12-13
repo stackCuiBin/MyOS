@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-10 16:15:55
- * @LastEditTime: 2021-12-09 02:12:54
+ * @LastEditTime: 2021-12-14 00:25:27
  * @LastEditors: Cuibb
  */
 
@@ -10,6 +10,7 @@
 #include "interrupt.h"
 #include "screen.h"
 #include "memory.h"
+#include "mutex.h"
 
 void KMain()
 {
@@ -34,6 +35,8 @@ void KMain()
     PrintChar('\n');
     
     MemModInit((byte*)KernelHeapBase, HeapSize);
+
+    MutexModInit();
 
     AppModInit();
 

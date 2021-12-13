@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-14 21:20:47
- * @LastEditTime: 2021-12-09 02:14:52
+ * @LastEditTime: 2021-12-14 02:24:48
  * @LastEditors: Cuibb
  */
 
@@ -48,7 +48,7 @@ static void TaskEntry()
 
     // to destory current task here
     asm volatile(
-        "movw  $0,  %ax \n"
+        "movl  $0,  %eax \n"
         "int   $0x80    \n"
     );
 }
@@ -159,6 +159,28 @@ static void RunningToReady()
     }
 }
 
+static void RunningToWaitting()
+{
+    if ( Queue_Length(&gRunningTask) > 0 ) {
+        TaskNode* tn = (TaskNode*)Queue_Front(&gRunningTask);
+
+        if ( !IsEqual(tn, gIdleTask) ) {
+            Queue_Remove(&gRunningTask);
+            Queue_Add(&gWaittingTask, (QueueNode*)tn);
+        }
+    }
+}
+
+static void WaittingToReady()
+{
+    while ( Queue_Length(&gWaittingTask) > 0 ) {
+        TaskNode* tn = (TaskNode*)Queue_Front(&gWaittingTask);
+
+        Queue_Remove(&gWaittingTask);
+        Queue_Add(&gReadyTask, (QueueNode*)tn);
+    }
+}
+
 void TaskModInit()
 {
     int i = 0;
@@ -215,6 +237,28 @@ void Schedule()
     PrepareForRun(gCTaskAddr);
     
     LoadTask(gCTaskAddr);
+}
+
+void MtxSchedule(uint action)
+{
+    if ( IsEqual(action, NOTIFY) ) {
+        WaittingToReady();
+    }
+    else if ( IsEqual(action, WAIT) ) {
+        RunningToWaitting();
+
+        ReadyToRunning();
+
+        CheckRunningTask();
+        
+        Queue_Rotate(&gRunningTask);
+        
+        gCTaskAddr = &(((TaskNode*)Queue_Front(&gRunningTask))->task);
+        
+        PrepareForRun(gCTaskAddr);
+        
+        LoadTask(gCTaskAddr);
+    }
 }
 
 void KillTask()

@@ -2,13 +2,14 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-15 23:00:32
- * @LastEditTime: 2021-12-09 02:23:03
+ * @LastEditTime: 2021-12-14 02:21:51
  * @LastEditors: Cuibb
  */
 
 #include "app.h"
 #include "utility.h"
 #include "memory.h"
+#include "syscall.h"
 
 #define MAX_APP_NUM       16
 
@@ -37,7 +38,7 @@ static void RegApp(const char* name, void (*tmain)(), byte pri)
 void AppMain()
 {
     RegApp("Task A", TaskA, 255);
-    // RegApp("Task B", TaskB, 230);
+    RegApp("Task B", TaskB, 230);
     // RegApp("Task C", TaskC, 230);
     // RegApp("Task D", TaskD, 255);
 }
@@ -58,42 +59,46 @@ uint GetAppNum()
     return gAppNum;
 }
 
+static uint g_mutex = 0;
+static int i = 0;
 
 void TaskA()
 {
-    int i = 0;
-    
     SetPrintPos(0, 12);
     
     PrintString(__FUNCTION__);
     PrintChar('\n');
     
-    uint* p = (uint*)Malloc(sizeof(uint) * 10);
+    g_mutex = CreateMutex();
 
-    PrintIntHex(p);
-    PrintChar('\n');
-    *p = 666;
-    PrintIntDec(*p);
-    PrintChar('\n');
+    EnterCritical(g_mutex);
 
-    Free(p);
+    for (i = 0; i < 50; i++) {
+        SetPrintPos(8, 12);
+        PrintChar('A' + i % 26);
+        Delay(1);
+    }
+
+    ExitCritical(g_mutex);
 }
 
 void TaskB()
 {
-    int i = 0;
     
-    SetPrintPos(0, 13);
+    SetPrintPos(0, 16);
     
     PrintString(__FUNCTION__);
     
+    EnterCritical(g_mutex);
+    i = 0;
     while(1)
     {
-        SetPrintPos(8, 13);
+        SetPrintPos(8, 16);
         PrintChar('0' + i);
         i = (i + 1) % 10;
         Delay(1);
     }
+    ExitCritical(g_mutex);
 }
 
 void TaskC()

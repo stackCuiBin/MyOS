@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-14 21:20:33
- * @LastEditTime: 2021-11-30 01:14:57
+ * @LastEditTime: 2021-12-14 02:06:05
  * @LastEditors: Cuibb
  */
 
@@ -63,12 +63,18 @@ typedef struct
     Task      task;
 } TaskNode;
 
+enum {
+    WAIT,
+    NOTIFY
+};
+
 extern void (* const RunTask)(volatile Task* pt);
 extern void (* const LoadTask)(volatile Task* pt);
 
 void TaskModInit();
 void LaunchTask();
 void Schedule();
+void MtxSchedule(uint action);
 void KillTask();
 
 #endif
