@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-12-13 23:59:21
- * @LastEditTime: 2021-12-14 02:28:06
+ * @LastEditTime: 2021-12-14 19:14:53
  * @LastEditors: Cuibb
  */
 
@@ -23,24 +23,24 @@ void MutexModInit()
     List_Init(&gMList);
 }
 
-void MutexCallHandler(uint cmd, uint param)
+void MutexCallHandler(uint cmd, uint param1, uint param2)
 {
     switch(cmd)
     {
         case CMD_MUTEX_CERATE: 
-            *(uint*)param = SysCreateMutex();
+            *(uint*)param1 = SysCreateMutex();
             break;
 
         case CMD_MUTEX_ENTER:
-            SysEnterCritical((Mutex*)param);
+            SysEnterCritical((Mutex*)param1, (uint*)param2);
             break;
 
         case CMD_MUTEX_EXIT:
-            SysExitCritical((Mutex*)param);
+            SysExitCritical((Mutex*)param1);
             break;
 
         case CMD_MUTEX_DESTROY:
-            SysDestroyMutex((Mutex*)param);
+            SysDestroyMutex((Mutex*)param1);
             break;
 
         default:
@@ -89,14 +89,16 @@ void SysDestroyMutex(Mutex* mutex)
     }
 }
 
-void SysEnterCritical(Mutex* mutex)
-{
+void SysEnterCritical(Mutex* mutex, uint* wait)
+{    
     if ( mutex && IsMutexValid(mutex) ) {
         if ( mutex->lock ) {
+            *wait = 0;
             PrintString("Move current task to wait\n");
             MtxSchedule(WAIT);
         } else {
             mutex->lock = 1;
+            *wait = 1;
             PrintString("Enter critical section\n");
         }
     }

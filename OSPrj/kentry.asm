@@ -32,9 +32,9 @@ extern ClearScreen
     push fs
     push gs
     
-    mov dx, ss
-    mov ds, dx
-    mov es, dx
+    mov si, ss
+    mov ds, si
+    mov es, si
     
     mov esp, BaseOfLoader
 %endmacro
@@ -55,9 +55,9 @@ extern ClearScreen
     push fs
     push gs
     
-    mov dx, ss
-    mov ds, dx
-    mov es, dx
+    mov si, ss
+    mov ds, si
+    mov es, si
     
     mov esp, BaseOfLoader
 %endmacro

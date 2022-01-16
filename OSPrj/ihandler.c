@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-14 21:32:32
- * @LastEditTime: 2021-12-14 02:33:00
+ * @LastEditTime: 2021-12-14 18:55:07
  * @LastEditors: Cuibb
  */
 
@@ -38,7 +38,7 @@ void SysCallHandler(uint type, uint cmd, uint param1, uint param2)   // __cdecl_
             break;
 
         case TYPE_MUTEX_OPT:
-            MutexCallHandler(cmd, param1);
+            MutexCallHandler(cmd, param1, param2);
             break;
 
         default:
