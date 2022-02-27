@@ -2,21 +2,186 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-12-13 23:59:21
- * @LastEditTime: 2021-12-14 19:14:53
+ * @LastEditTime: 2022-02-27 14:35:42
  * @LastEditors: Cuibb
  */
 
 #include "mutex.h"
-#include "screen.h"
 #include "memory.h"
 #include "task.h"
 
-#define CMD_MUTEX_CERATE     0
-#define CMD_MUTEX_ENTER      1
-#define CMD_MUTEX_EXIT       2
-#define CMD_MUTEX_DESTROY    3
+extern volatile Task* gCTaskAddr;
+
+enum
+{
+    Normal,
+    Strict
+};
+
+typedef struct 
+{
+    ListNode head;
+    uint type;
+    uint lock;
+} Mutex;
 
 static List gMList = {0};
+
+static Mutex* SysCreateMutex(uint type)
+{
+    Mutex* ret = Malloc(sizeof(Mutex));
+    
+    if( ret )
+    {
+        ret->lock = 0;  
+        ret->type = type;
+        
+        List_Add(&gMList, (ListNode*)ret);
+    }
+    
+    return ret;
+}
+
+static uint IsMutexValid(Mutex* mutex)
+{
+    uint ret = 0;
+    ListNode* pos = NULL;
+    
+    List_ForEach(&gMList, pos)
+    {
+        if( IsEqual(pos, mutex) )
+        {
+            ret = 1;
+            break;
+        }
+    }
+    
+    return ret;
+}
+
+static void SysDestroyMutex(Mutex* mutex, uint* result)
+{
+    if( mutex )
+    {
+        ListNode* pos = NULL;
+        
+        *result = 0;
+    
+        List_ForEach(&gMList, pos)
+        {
+            if( IsEqual(pos, mutex) )
+            {
+                if( IsEqual(mutex->lock, 0) )
+                {
+                    List_DelNode(pos);
+                    
+                    Free(pos);
+                    
+                    *result = 1;
+                }
+                
+                break;
+            }
+        }
+    }
+}
+
+static void SysNormalEnter(Mutex* mutex, uint* wait)
+{
+    if( mutex->lock )
+    {
+        *wait = 1;
+        
+        MtxSchedule(WAIT);
+    }
+    else
+    {
+        mutex->lock = 1;
+        
+        *wait = 0;
+    }
+}
+
+static void SysStrictEnter(Mutex* mutex, uint* wait)
+{
+    if( mutex->lock )
+    {
+        if( IsEqual(mutex->lock, gCTaskAddr) )
+        {
+            *wait = 0;
+        }
+        else
+        {         
+            *wait = 1;
+             
+            MtxSchedule(WAIT);
+        }
+    }
+    else
+    {
+        mutex->lock = (uint)gCTaskAddr;
+            
+        *wait = 0;
+    }
+}
+
+static void SysEnterCritical(Mutex* mutex, uint* wait)
+{
+    if( mutex && IsMutexValid(mutex) )
+    { 
+        switch(mutex->type)
+        {
+            case Normal:
+                SysNormalEnter(mutex, wait);
+                break;
+            case Strict:
+                SysStrictEnter(mutex, wait);
+                break;
+            default:
+                break;
+        }
+    }
+}
+
+static void SysNormalExit(Mutex* mutex)
+{
+    mutex->lock = 0;
+    
+    MtxSchedule(NOTIFY);
+}
+
+static void SysStrictExit(Mutex* mutex)
+{
+    if( IsEqual(mutex->lock, gCTaskAddr) )
+    {
+        mutex->lock = 0;
+            
+        MtxSchedule(NOTIFY);
+    }
+    else
+    {   
+        KillTask();
+    }
+}
+
+
+void SysExitCritical(Mutex* mutex)
+{
+    if( mutex && IsMutexValid(mutex) )
+    {
+        switch(mutex->type)
+        {
+            case Normal:
+                SysNormalExit(mutex);
+                break;
+            case Strict:
+                SysStrictExit(mutex);
+                break;
+            default:
+                break;
+        }
+    }
+}
 
 void MutexModInit()
 {
@@ -25,90 +190,25 @@ void MutexModInit()
 
 void MutexCallHandler(uint cmd, uint param1, uint param2)
 {
-    switch(cmd)
+    if( cmd == 0 )
     {
-        case CMD_MUTEX_CERATE: 
-            *(uint*)param1 = SysCreateMutex();
-            break;
-
-        case CMD_MUTEX_ENTER:
-            SysEnterCritical((Mutex*)param1, (uint*)param2);
-            break;
-
-        case CMD_MUTEX_EXIT:
-            SysExitCritical((Mutex*)param1);
-            break;
-
-        case CMD_MUTEX_DESTROY:
-            SysDestroyMutex((Mutex*)param1);
-            break;
-
-        default:
-            break;
+        uint* pRet = (uint*)param1;
+        
+        *pRet = (uint)SysCreateMutex(param2);
+    }
+    else if( cmd == 1 )
+    {
+        SysEnterCritical((Mutex*)param1, (uint*)param2);
+    }
+    else if( cmd == 2 )
+    {
+        SysExitCritical((Mutex*)param1);
+    }
+    else 
+    {
+        SysDestroyMutex((Mutex*)param1, (uint*)param2);
     }
 }
 
-static bool IsMutexValid(Mutex* mutex)
-{
-    bool ret = False;
 
-    if ( mutex ) {
-        ListNode* pn = NULL;
 
-        List_ForEach(&gMList, pn) {
-            if ( IsEqual(mutex, pn) ) {
-                ret = True;
-                break;
-            }
-        }
-    }
-
-    return ret;
-}
-
-uint SysCreateMutex()
-{
-    Mutex* ret = (Mutex*)Malloc(sizeof(Mutex));
-
-    if ( ret ) {
-        ret->lock = 0;
-
-        List_Add(&gMList, (ListNode*)ret);
-    }
-
-    return (uint)ret;
-
-}
-
-void SysDestroyMutex(Mutex* mutex)
-{
-    if ( mutex && IsMutexValid(mutex) ) {
-        List_DelNode((ListNode*)mutex);
-
-        Free(mutex);
-    }
-}
-
-void SysEnterCritical(Mutex* mutex, uint* wait)
-{    
-    if ( mutex && IsMutexValid(mutex) ) {
-        if ( mutex->lock ) {
-            *wait = 0;
-            PrintString("Move current task to wait\n");
-            MtxSchedule(WAIT);
-        } else {
-            mutex->lock = 1;
-            *wait = 1;
-            PrintString("Enter critical section\n");
-        }
-    }
-}
-
-void SysExitCritical(Mutex* mutex)
-{
-    if ( mutex && IsMutexValid(mutex) ) {
-        mutex->lock = 0;
-        PrintString("Notify all task to run again\n");
-        MtxSchedule(NOTIFY);
-    }
-}

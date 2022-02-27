@@ -12,18 +12,8 @@
 #include "type.h"
 #include "list.h"
 
-typedef struct
-{
-    ListNode head;
-    uint lock;
-}Mutex;
-
 void MutexModInit();
 void MutexCallHandler(uint cmd, uint param1, uint param2);
 
-uint SysCreateMutex();
-void SysEnterCritical(Mutex* mutex, uint* wait);
-void SysExitCritical(Mutex* mutex);
-void SysDestroyMutex(Mutex* mutex);
 
 #endif // MUTEX_H

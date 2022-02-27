@@ -31,6 +31,6 @@
 #define CHECK_PTR(ptr)                                    
 
 void Delay(int n);
-char* StrnCpy(char* dist, const char* src, int len);
+char* StrnCpy(char* dst, const char* src, int len);
 
 #endif // UTILITY_H

@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-12-14 00:09:07
- * @LastEditTime: 2021-12-14 19:17:56
+ * @LastEditTime: 2022-02-27 15:41:04
  * @LastEditors: Cuibb
  */
 
@@ -27,22 +27,23 @@ void Exit()
     SysCall(0, 0, 0, 0);
 }
 
-uint CreateMutex()
+uint CreateMutex(uint type)
 {
     volatile uint ret = 0;
-
-    SysCall(1, 0, &ret, 0);
-
+    
+    SysCall(1, 0, &ret, type); 
+    
     return ret;
 }
 
 void EnterCritical(uint mutex)
 {
     volatile uint wait = 0;
-
-    do {
+    
+    do
+    {
         SysCall(1, 1, mutex, &wait);
-    } while( wait != 1 );
+    } while( wait );
 }
 
 void ExitCritical(uint mutex)
@@ -50,7 +51,11 @@ void ExitCritical(uint mutex)
     SysCall(1, 2, mutex, 0);
 }
 
-void DestroyMutex(uint mutex)
+uint DestroyMutex(uint mutex)
 {
-    SysCall(1, 3, mutex, 0);
+    uint ret = 0;
+    
+    SysCall(1, 3, mutex, &ret);
+    
+    return ret;
 }
