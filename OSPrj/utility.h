@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-14 21:22:03
- * @LastEditTime: 2022-02-27 17:18:15
+ * @LastEditTime: 2022-02-28 00:51:19
  * @LastEditors: Cuibb
  */
 
@@ -36,7 +36,7 @@
 #define CHECK_PTR(ptr)                                    
 
 void Delay(int n);
-char* StrnCpy(char* dst, const char* src, int len);
+char* StrnCpy(char* dst, const char* src, uint len);
 uint StrLen(const char* s);
 int StrCmp(const char* left, const char* right, uint n);
 

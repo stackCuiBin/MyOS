@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-14 21:20:33
- * @LastEditTime: 2022-02-27 23:08:02
+ * @LastEditTime: 2022-02-28 00:44:03
  * @LastEditors: Cuibb
  */
 
@@ -64,6 +64,19 @@ typedef struct
     Task      task;
 } TaskNode;
 
+typedef struct
+{
+    const char* name;
+    void (*tmain)();
+    byte priority;
+} AppInfo;
+
+typedef struct
+{
+    QueueNode head;
+    AppInfo app;
+}AppNode;
+
 enum {
     WAIT,
     NOTIFY
@@ -71,7 +84,8 @@ enum {
 
 enum {
     TASK_CMD_KILL,
-    TASK_CMD_WAIT
+    TASK_CMD_WAIT,
+    TASK_CMD_REG_APP
 };
 
 extern void (* const RunTask)(volatile Task* pt);

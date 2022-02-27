@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2022-02-27 14:54:17
- * @LastEditTime: 2022-02-27 15:39:29
+ * @LastEditTime: 2022-02-28 01:32:53
  * @LastEditors: Cuibb
  */
 
@@ -55,9 +55,6 @@ void Writer()
 {
     int next = 0;
     
-    g_mutex_write = CreateMutex(Normal);
-    g_mutex_read = CreateMutex(Strict);
-    
     SetPrintPos(0, 12);
     PrintString(__FUNCTION__);
 
@@ -76,4 +73,35 @@ void Writer()
     EnterCritical(g_mutex_write);
     g_data = 0;
     ExitCritical(g_mutex_write);
+}
+
+static void Init()
+{
+    g_mutex_write = CreateMutex(Normal);
+    g_mutex_read = CreateMutex(Strict);
+}
+
+static DeInit()
+{
+    Wait("Writer");
+    Wait("ReaderA");
+    Wait("ReaderB");
+    Wait("ReaderC");
+
+    SetPrintPos(0, 20);
+    PrintString(__FUNCTION__);
+    
+    DestroyMutex(g_mutex_write);
+    DestroyMutex(g_mutex_read);
+}
+
+void RunDemo2()
+{
+    Init();
+
+    RegApp("Writer", Writer, 255);
+    RegApp("ReaderA", Reader, 255);
+    RegApp("ReaderB", Reader, 255);
+    RegApp("ReaderC", Reader, 255);
+    RegApp("DeInit", DeInit, 255);
 }

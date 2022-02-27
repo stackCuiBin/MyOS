@@ -2,22 +2,16 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-15 23:00:32
- * @LastEditTime: 2022-02-27 23:21:31
+ * @LastEditTime: 2022-02-28 01:32:17
  * @LastEditors: Cuibb
  */
 
-#include "app.h"
 #include "utility.h"
 #include "memory.h"
 #include "syscall.h"
 
 #include "demo1.h"
 #include "demo2.h"
-
-#define MAX_APP_NUM       16
-
-static AppInfo  gAppToRun[MAX_APP_NUM] = {0};
-static uint gAppNum = 0;
 
 void TaskA();
 void TaskB();
@@ -28,56 +22,21 @@ void CookRice();
 void CookDish();
 void HaveDinner();
 
-static void RegApp(const char* name, void (*tmain)(), byte pri)
-{
-    if ( gAppNum < MAX_APP_NUM ) {
-        AppInfo* app = AddrOff(gAppToRun, gAppNum);
-
-        /* 需要深拷贝 */
-        app->name = name;
-        app->tmain = tmain;
-        app->priority = pri;
-
-        gAppNum++;
-    }
-}
-
 void AppMain()
-{
-    // RegApp("Task A", TaskA, 255);
-    // RegApp("Task B", TaskB, 230);
-    // RegApp("Task C", TaskC, 230);
-    // RegApp("Task D", TaskD, 255);
-
-    // RegApp("PA ", ProducerA, 255);
-    // RegApp("PB", ProducerB, 255);
-    // RegApp("CA", ConsumerA, 255);
-    // RegApp("CB", ConsumerB, 255);
-
-    // RegApp("Writer", Writer, 255);
-    // RegApp("ReaderA", Reader, 255);
-    // RegApp("ReaderB", Reader, 255);
-    // RegApp("ReaderC", Reader, 255);
-
-    RegApp("CookRice", CookRice, 255);
-    RegApp("CookDish", CookDish, 255);
-    RegApp("HaveDinner", HaveDinner, 255);
-}
-
-AppInfo* GetAppToRun(uint index)
-{
-    AppInfo* ret = NULL;
-
-    if ( index < MAX_APP_NUM ) {
-        ret = AddrOff(gAppToRun, index);
-    }
+{   
+    // 验证运行在用户态,访问非用户空间产生段错误
+    // int* p = (int*)0x80000;
+    // *p = 0;
     
-    return ret;
-}
+    // SetPrintPos(0, 10);
+    // PrintString("AppMain() : Hello D.T.OS!\n");
 
-uint GetAppNum()
-{
-    return gAppNum;
+    // RegApp("CookRice", CookRice, 255);
+    // RegApp("CookDish", CookDish, 255);
+    // RegApp("HaveDinner", HaveDinner, 255);
+
+    // RunDemo1();
+    RunDemo2();
 }
 
 void CookRice()
@@ -135,8 +94,6 @@ void TaskA()
     
     g_mutex = CreateMutex(Normal);
     
-    EnterCritical(g_mutex);
-    EnterCritical(g_mutex);
     EnterCritical(g_mutex);
     
     for(i=0; i<50; i++)

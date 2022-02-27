@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2022-02-27 12:53:22
- * @LastEditTime: 2022-02-27 14:34:35
+ * @LastEditTime: 2022-02-28 01:32:46
  * @LastEditors: Cuibb
  */
 
@@ -61,10 +61,6 @@ void ProducerA()
 {
     int next = 0;
     int run = 1;
-    
-    g_mutex = CreateMutex(Strict);
-    
-    List_Init(&g_store);
 
     SetPrintPos(0, 12);
     PrintString(__FUNCTION__);
@@ -144,7 +140,7 @@ void ConsumerA()
         ExitCritical(g_mutex);
 
         if (run)
-            Delay(1);
+            Delay(next % 2 + 1);
         else
             break;
     }
@@ -171,8 +167,38 @@ void ConsumerB()
         ExitCritical(g_mutex);
 
         if (run)
-            Delay(next % 2 + 1);
+            Delay(1);
         else
             break;
     }
+}
+
+static void Init()
+{
+    g_mutex = CreateMutex(Strict);
+    List_Init(&g_store);
+}
+
+static DeInit()
+{
+    Wait("PA");
+    Wait("PB");
+    Wait("CA");
+    Wait("CB");
+
+    SetPrintPos(0, 20);
+    PrintString(__FUNCTION__);
+    
+    DestroyMutex(g_mutex);
+}
+
+void RunDemo1()
+{
+    Init();
+
+    RegApp("PA", ProducerA, 255);
+    RegApp("PB", ProducerB, 255);
+    RegApp("CA", ConsumerA, 255);
+    RegApp("CB", ConsumerB, 255);
+    RegApp("DeInit", DeInit, 255);
 }

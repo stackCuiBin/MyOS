@@ -2,42 +2,32 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-14 21:20:47
- * @LastEditTime: 2022-02-27 23:23:29
+ * @LastEditTime: 2022-02-28 01:12:15
  * @LastEditors: Cuibb
  */
 
 #include "utility.h"
 #include "task.h"
 
-#define MAX_TASK_NUM        4
-#define MAX_RUNNING_TASK    2
+#define MAX_TASK_NUM        16
+#define MAX_RUNNING_TASK    8
 #define MAX_READY_TASK      (MAX_TASK_NUM - MAX_RUNNING_TASK)
 #define MAX_TASK_BUF_NUM    (MAX_TASK_NUM + 1)  /* one more idle task */
 #define PID_BASE            0x10
 #define MAX_TIME_SLICE      260
-
-typedef struct
-{
-    const char* name;
-    void (*tmain)();
-    byte priority;
-} AppInfo;
-
-static AppInfo* (*GetAppToRun)(uint index) = NULL;
-static uint (*GetAppNum)() = NULL;
 
 void (* const RunTask)(volatile Task* pt) = NULL;
 void (* const LoadTask)(volatile Task* pt) = NULL;
 
 volatile Task* gCTaskAddr = NULL;
 static TaskNode gTaskBuff[MAX_TASK_BUF_NUM] = {0};
+static Queue gAppToRun = {0};
 static Queue gFreeTaskNode = {0};
 static Queue gReadyTask = {0};
 static Queue gRunningTask = {0};
 static Queue gWaittingTask = {0};
 static TSS gTSS = {0};
 static TaskNode* gIdleTask = NULL;
-static uint gAppToRunIndex = 0;
 static uint gPid = PID_BASE;
 
 static void TaskEntry()
@@ -76,7 +66,12 @@ static void InitTask(Task* pt, uint id, const char* name, void(*entry)(), byte p
     pt->current = 0;
     pt->total = MAX_TIME_SLICE - pri;
 
-    StrnCpy(pt->name, name, sizeof(pt->name)-1);
+    if (name) {
+        StrnCpy(pt->name, name, sizeof(pt->name)-1);
+    } else {
+        *(pt->name) = 0;
+    }
+    
     Queue_Init(&pt->wait);
     
     SetDescValue(AddrOff(pt->ldt, LDT_VIDEO_INDEX),  0xB8000, 0x07FFF, DA_DRWA + DA_32 + DA_DPL3);
@@ -120,20 +115,19 @@ static void PrepareForRun(volatile Task* pt)
 
 static void CreateTask()
 {
-    uint num =  GetAppNum();
-
-    while ( (gAppToRunIndex < num) && (Queue_Length(&gReadyTask) < MAX_READY_TASK) )
+    while ( (0 < Queue_Length(&gAppToRun)) && (Queue_Length(&gReadyTask) < MAX_READY_TASK) )
     {
         TaskNode* tn = (TaskNode*)Queue_Remove(&gFreeTaskNode);
 
         if ( tn ) {
-            AppInfo* app = GetAppToRun(gAppToRunIndex);
+            AppNode* an = (AppNode*)Queue_Remove(&gAppToRun);
 
-            InitTask(&tn->task, gPid++, app->name, app->tmain, app->priority);
+            InitTask(&tn->task, gPid++, an->app.name, an->app.tmain, an->app.priority);
 
             Queue_Add(&gReadyTask, (QueueNode*)tn);
 
-            gAppToRunIndex++;
+            Free(an->app.name);
+            Free(an);
         } else {
             break;
         }
@@ -202,6 +196,35 @@ static void WaittingToReady(Queue* wq)
     }
 }
 
+static void AppInfoToRun(AppInfo* app)
+{
+    if (app) {
+        AppNode* an = (AppNode*)Malloc(sizeof(AppNode));
+
+        if (an) {
+            char* s = app->name ? (char*)Malloc(StrLen(app->name) + 1) : NULL;
+
+            an->app.name = s ? StrnCpy(s, app->name, -1) : NULL;
+            an->app.tmain = app->tmain;
+            an->app.priority = app->priority;
+
+            Queue_Add(&gAppToRun, (QueueNode*)an);          
+        }
+
+    }
+}
+
+static void AppMainToRun()
+{
+    AppInfo app;
+
+    app.name = "AppMain";
+    app.tmain = (void*)(*((uint*)AppMainEntry));
+    app.priority = 200;
+    
+    AppInfoToRun(&app);
+}
+
 void TaskModInit()
 {
     int i = 0;
@@ -214,9 +237,7 @@ void TaskModInit()
     
     gIdleTask = (void*)AddrOff(gTaskBuff, MAX_TASK_NUM);
     
-    GetAppToRun = (void*)(*((uint*)GetAppToRunEntry));
-    GetAppNum = (void*)(*((uint*)GetAppNumEntry));
-    
+    Queue_Init(&gAppToRun);
     Queue_Init(&gFreeTaskNode);
     Queue_Init(&gRunningTask);
     Queue_Init(&gReadyTask);
@@ -229,7 +250,9 @@ void TaskModInit()
     SetDescValue(AddrOff(gGdtInfo.entry, GDT_TASK_TSS_INDEX), (uint)&gTSS, sizeof(gTSS)-1, DA_386TSS + DA_DPL0);
     
     InitTask(&gIdleTask->task, 0, "IdleTask", IdleTask, 255);
-
+    
+    AppMainToRun();
+    
     ReadyToRunning();
     CheckRunningTask();
 }
@@ -309,6 +332,10 @@ void TaskCallHandler(uint cmd, uint param1, uint param2)
 
         case TASK_CMD_WAIT:
             WaitTask((char*)param1);
+            break;
+
+        case TASK_CMD_REG_APP:
+            AppInfoToRun((AppInfo*)param1);
             break;
 
         default:

@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-10 16:15:55
- * @LastEditTime: 2021-12-09 01:53:29
+ * @LastEditTime: 2022-02-28 00:03:52
  * @LastEditors: Cuibb
  */
 
@@ -24,8 +24,7 @@
 #define AppStackSize    512
 
 #define BaseOfSharedMemory 0xA000
-#define GetAppToRunEntry   (BaseOfSharedMemory + 36)
-#define GetAppNumEntry     (BaseOfSharedMemory + 40)
+#define AppMainEntry       (BaseOfSharedMemory + 36)
 
 #define    DA_DPL0            0x00
 #define    DA_DPL1            0x20

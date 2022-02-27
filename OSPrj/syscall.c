@@ -2,11 +2,12 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-12-14 00:09:07
- * @LastEditTime: 2022-02-27 22:29:15
+ * @LastEditTime: 2022-02-28 00:41:29
  * @LastEditors: Cuibb
  */
 
 #include "syscall.h"
+#include "app.h"
 
 // 当可选参数被省略，寄存器前使用单个%作为参数
 // 当可选参数不被省略，寄存器前使用两个%%作为参数
@@ -31,6 +32,19 @@ void Wait(const char* name)
 {
     if (name) {
         SysCall(0, 1, name, 0);
+    }
+}
+
+void RegApp(const char* name, void(*tmain)(), byte pri)
+{
+    if (name && tmain) {
+        AppInfo info;
+
+        info.name = name;
+        info.tmain = tmain;
+        info.priority = pri;
+
+        SysCall(0, 2, &info, 0);
     }
 }
 
