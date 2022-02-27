@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-12-14 00:09:00
- * @LastEditTime: 2021-12-14 19:07:07
+ * @LastEditTime: 2022-02-27 22:29:58
  * @LastEditors: Cuibb
  */
 
@@ -18,6 +18,7 @@ enum
 };
 
 void Exit();
+void Wait(const char* name);
 
 uint CreateMutex(uint type);
 void EnterCritical(uint mutex);

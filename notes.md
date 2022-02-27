@@ -2434,3 +2434,10 @@
     Strict
         严格互斥锁，支持多次获取锁
         获取锁和释放锁的任务必须是同一个
+
+## 第67-68课 进程等待机制的实现
+### 关键实现步骤
+    新增 Wait(const char* name) 系统调用接口
+    扩展 RunningToWaitting() 内核函数：参数化等待队列
+    扩展 WaittingToReady() 内核函数：参数化等待队列
+    实现 FindTaskByName() : 通过名字查找任务数据结构

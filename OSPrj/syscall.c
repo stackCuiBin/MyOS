@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-12-14 00:09:07
- * @LastEditTime: 2022-02-27 15:41:04
+ * @LastEditTime: 2022-02-27 22:29:15
  * @LastEditors: Cuibb
  */
 
@@ -25,6 +25,13 @@
 void Exit()
 {
     SysCall(0, 0, 0, 0);
+}
+
+void Wait(const char* name)
+{
+    if (name) {
+        SysCall(0, 1, name, 0);
+    }
 }
 
 uint CreateMutex(uint type)

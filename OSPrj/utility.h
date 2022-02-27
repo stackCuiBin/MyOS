@@ -2,12 +2,17 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-14 21:22:03
- * @LastEditTime: 2021-12-08 22:47:23
+ * @LastEditTime: 2022-02-27 17:18:15
  * @LastEditors: Cuibb
  */
 
 #ifndef UTILITY_H
 #define UTILITY_H
+
+#include "type.h"
+
+#define Min(a, b)        ((a) < (b) ? (a) : (b))
+#define Max(a, b)        ((a) > (b) ? (a) : (b))
 
 #define AddrOff(a, i)    ((void*)((uint)(a) + (i) * sizeof(*(a))))
 
@@ -32,5 +37,7 @@
 
 void Delay(int n);
 char* StrnCpy(char* dst, const char* src, int len);
+uint StrLen(const char* s);
+int StrCmp(const char* left, const char* right, uint n);
 
 #endif // UTILITY_H

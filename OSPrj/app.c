@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-15 23:00:32
- * @LastEditTime: 2022-02-27 15:51:50
+ * @LastEditTime: 2022-02-27 23:21:31
  * @LastEditors: Cuibb
  */
 
@@ -23,6 +23,10 @@ void TaskA();
 void TaskB();
 void TaskC();
 void TaskD();
+
+void CookRice();
+void CookDish();
+void HaveDinner();
 
 static void RegApp(const char* name, void (*tmain)(), byte pri)
 {
@@ -50,10 +54,14 @@ void AppMain()
     // RegApp("CA", ConsumerA, 255);
     // RegApp("CB", ConsumerB, 255);
 
-    RegApp("Writer", Writer, 255);
-    RegApp("ReaderA", Reader, 255);
-    RegApp("ReaderB", Reader, 255);
-    RegApp("ReaderC", Reader, 255);
+    // RegApp("Writer", Writer, 255);
+    // RegApp("ReaderA", Reader, 255);
+    // RegApp("ReaderB", Reader, 255);
+    // RegApp("ReaderC", Reader, 255);
+
+    RegApp("CookRice", CookRice, 255);
+    RegApp("CookDish", CookDish, 255);
+    RegApp("HaveDinner", HaveDinner, 255);
 }
 
 AppInfo* GetAppToRun(uint index)
@@ -70,6 +78,49 @@ AppInfo* GetAppToRun(uint index)
 uint GetAppNum()
 {
     return gAppNum;
+}
+
+void CookRice()
+{
+    int i = 0;
+    
+    SetPrintPos(0, 12);
+    
+    PrintString(__FUNCTION__);
+    PrintChar('\n');
+    
+    for(i=0; i<50; i++)
+    {
+        SetPrintPos(10, 12);
+        PrintChar('A' + i % 26);
+        Delay(1);
+    }
+}
+
+void CookDish()
+{
+    int i = 0;
+    
+    SetPrintPos(0, 14);
+    
+    PrintString(__FUNCTION__);
+    PrintChar('\n');
+    
+    for(i=0; i<30; i++)
+    {
+        SetPrintPos(10, 14);
+        PrintChar('0' + i % 10);
+        Delay(1);
+    }
+}
+
+void HaveDinner()
+{
+    Wait("CookDish");
+    Wait("CookRice");
+    
+    SetPrintPos(10, 16);
+    PrintString("Having dinner...\n");
 }
 
 static uint g_mutex = 0;

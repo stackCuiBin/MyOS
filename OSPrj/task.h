@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-14 21:20:33
- * @LastEditTime: 2021-12-14 02:06:05
+ * @LastEditTime: 2022-02-27 23:08:02
  * @LastEditors: Cuibb
  */
 
@@ -53,7 +53,8 @@ typedef struct
     uint       id;
     ushort     current; /* 已执行时间数 */
     ushort     total;  /* 执行的总时间数 */
-    char       name[8]; 
+    char       name[16];
+    Queue      wait; 
     byte*      stack;
 } Task;
 
@@ -68,6 +69,11 @@ enum {
     NOTIFY
 };
 
+enum {
+    TASK_CMD_KILL,
+    TASK_CMD_WAIT
+};
+
 extern void (* const RunTask)(volatile Task* pt);
 extern void (* const LoadTask)(volatile Task* pt);
 
@@ -75,6 +81,6 @@ void TaskModInit();
 void LaunchTask();
 void Schedule();
 void MtxSchedule(uint action);
-void KillTask();
+void TaskCallHandler(uint cmd, uint param1, uint param2);
 
 #endif

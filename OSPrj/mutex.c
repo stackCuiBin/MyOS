@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-12-13 23:59:21
- * @LastEditTime: 2022-02-27 14:35:42
+ * @LastEditTime: 2022-02-27 23:10:10
  * @LastEditors: Cuibb
  */
 
@@ -160,7 +160,7 @@ static void SysStrictExit(Mutex* mutex)
     }
     else
     {   
-        KillTask();
+        TaskCallHandler(TASK_CMD_KILL, 0, 0);
     }
 }
 

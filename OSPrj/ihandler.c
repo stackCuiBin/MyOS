@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-14 21:32:32
- * @LastEditTime: 2021-12-14 18:55:07
+ * @LastEditTime: 2022-02-27 23:09:30
  * @LastEditors: Cuibb
  */
 
@@ -10,7 +10,7 @@
 #include "task.h"
 #include "mutex.h"
 
-#define TYPE_KILL_TASK   0
+#define TYPE_TASK_OPT    0
 #define TYPE_MUTEX_OPT   1
 
 extern volatile Task* gCTaskAddr;
@@ -33,8 +33,8 @@ void SysCallHandler(uint type, uint cmd, uint param1, uint param2)   // __cdecl_
 {
     switch(type)
     {
-        case TYPE_KILL_TASK:
-            KillTask();
+        case TYPE_TASK_OPT:
+            TaskCallHandler(cmd, param1, param2);
             break;
 
         case TYPE_MUTEX_OPT:
@@ -53,7 +53,7 @@ void PageFaultHandler()
     PrintString("Page Fault: kill ");
     PrintString(gCTaskAddr->name);
     
-    KillTask();
+    TaskCallHandler(TASK_CMD_KILL, 0, 0);
 }
 
 void SegmentFaultHandler()
@@ -63,5 +63,5 @@ void SegmentFaultHandler()
     PrintString("Segment Fault: kill ");
     PrintString(gCTaskAddr->name);
     
-    KillTask();
+    TaskCallHandler(TASK_CMD_KILL, 0, 0);
 }
