@@ -2,11 +2,16 @@
 
 global _start
 global TimerHandlerEntry
+global KeyboardHandlerEntry
 global SysCallHandlerEntry
 global PageFaultHandlerEntry
 global SegmentFaultHandlerEntry
 
+global ReadPort
+global WritePort
+
 extern TimerHandler
+extern KeyboardHandler
 extern SysCallHandler
 extern PageFaultHandler
 extern SegmentFaultHandler
@@ -120,10 +125,58 @@ InitGlobal:
     ret
     
 ;
+; Byte ReadPort(ushort port)
+;
+ReadPort:
+    push ebp
+    mov  ebp, esp
+
+    xor eax, eax
+
+    mov dx, [esp + 8]
+    in  al, dx
+
+    nop
+    nop
+    nop
+
+    leave
+
+    ret
+
+;
+; void WritePort(ushort port, ushort value)
+;
+WritePort:
+    push ebp
+    mov  ebp, esp
+
+    xor eax, eax
+
+    mov dx, [esp + 8]
+    mov al, [esp + 12]
+    out dx, al
+
+    nop
+    nop
+    nop
+
+    leave
+
+    ret
+
+;
 ;
 TimerHandlerEntry:
 BeginISR 
     call TimerHandler
+EndISR
+
+;
+;
+KeyboardHandlerEntry:
+BeginISR 
+    call KeyboardHandler
 EndISR
     
 ;

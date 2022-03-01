@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-10 16:15:55
- * @LastEditTime: 2021-12-14 00:25:27
+ * @LastEditTime: 2022-03-02 00:53:36
  * @LastEditors: Cuibb
  */
 
@@ -11,6 +11,7 @@
 #include "screen.h"
 #include "memory.h"
 #include "mutex.h"
+#include "keyboard.h"
 
 void KMain()
 {
@@ -35,6 +36,8 @@ void KMain()
     PrintChar('\n');
     
     MemModInit((byte*)KernelHeapBase, HeapSize);
+
+    KeyboardModInit();
 
     MutexModInit();
 

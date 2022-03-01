@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-14 21:21:30
- * @LastEditTime: 2021-11-15 21:33:54
+ * @LastEditTime: 2022-03-01 22:46:36
  * @LastEditors: Cuibb
  */
 
@@ -11,7 +11,6 @@
 #include "ihandler.h"
 
 void (* const InitInterrupt)() = NULL;
-void (* const EnableTimer)() = NULL;
 void (* const SendEOI)(uint port) = NULL;
 
 void IntModInit()
@@ -19,6 +18,7 @@ void IntModInit()
     SetIntHandler(AddrOff(gIdtInfo.entry, 0x0D), (uint)SegmentFaultHandlerEntry);
     SetIntHandler(AddrOff(gIdtInfo.entry, 0x0E), (uint)PageFaultHandlerEntry);
     SetIntHandler(AddrOff(gIdtInfo.entry, 0x20), (uint)TimerHandlerEntry);
+    SetIntHandler(AddrOff(gIdtInfo.entry, 0x21), (uint)KeyboardHandlerEntry);
     SetIntHandler(AddrOff(gIdtInfo.entry, 0x80), (uint)SysCallHandlerEntry);
     
     InitInterrupt();

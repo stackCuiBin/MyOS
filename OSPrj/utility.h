@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-14 21:22:03
- * @LastEditTime: 2022-02-28 00:51:19
+ * @LastEditTime: 2022-03-02 00:22:57
  * @LastEditors: Cuibb
  */
 
@@ -34,6 +34,8 @@
 })
 
 #define CHECK_PTR(ptr)                                    
+
+#define Dim(a)  (sizeof(a)/sizeof(*(a)))
 
 void Delay(int n);
 char* StrnCpy(char* dst, const char* src, uint len);

@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-14 21:32:32
- * @LastEditTime: 2022-02-27 23:09:30
+ * @LastEditTime: 2022-03-02 00:54:46
  * @LastEditors: Cuibb
  */
 
@@ -12,6 +12,8 @@
 
 #define TYPE_TASK_OPT    0
 #define TYPE_MUTEX_OPT   1
+
+extern byte ReadPort(ushort port);
 
 extern volatile Task* gCTaskAddr;
 
@@ -26,6 +28,15 @@ void TimerHandler()
         Schedule();
     }
     
+    SendEOI(MASTER_EOI_PORT);
+}
+
+void KeyboardHandler()
+{
+    byte sc = ReadPort(0x60);
+    
+    PutScanCode(sc);
+
     SendEOI(MASTER_EOI_PORT);
 }
 

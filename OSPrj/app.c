@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-15 23:00:32
- * @LastEditTime: 2022-02-28 01:32:17
+ * @LastEditTime: 2022-03-01 23:53:50
  * @LastEditors: Cuibb
  */
 
@@ -36,7 +36,7 @@ void AppMain()
     // RegApp("HaveDinner", HaveDinner, 255);
 
     // RunDemo1();
-    RunDemo2();
+    // RunDemo2();
 }
 
 void CookRice()
