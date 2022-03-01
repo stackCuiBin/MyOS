@@ -196,7 +196,6 @@ StoreGlobal:
     mov dword [RunTaskEntry], RunTask
     mov dword [LoadTaskEntry], LoadTask
     mov dword [InitInterruptEntry], InitInterrupt
-    mov dword [EnableTimerEntry], EnableTimer
     mov dword [SendEOIEntry], SendEOI
     
     mov eax, dword [GdtPtr + 2]
@@ -339,7 +338,7 @@ RunTask:
     nop
     %endrep
     
-    and ax, 0xFE
+    and ax, 0xFC
     
     out dx, al
     
@@ -392,29 +391,6 @@ InitInterrupt:
     
     leave 
     ret
-
-;
-;
-EnableTimer:
-    push ebp
-    mov ebp, esp
-    
-    push ax
-    push dx
-    
-    mov dx, MASTER_IMR_PORT
-    
-    call ReadIMR
-    
-    and ax, 0xFE
-    
-    call WriteIMR
-    
-    pop dx
-    pop ax
-    
-    leave
-    ret  
     
 ; void SendEOI(uint port);
 ;    port ==> 8259A port

@@ -15,7 +15,6 @@ extern gCTaskAddr
 extern gGdtInfo
 extern gIdtInfo
 extern InitInterrupt
-extern EnableTimer
 extern SendEOI
 extern RunTask
 extern LoadTask
@@ -109,9 +108,6 @@ InitGlobal:
     
     mov eax, dword [InitInterruptEntry]
     mov dword [InitInterrupt], eax
-    
-    mov eax, dword [EnableTimerEntry]
-    mov dword [EnableTimer], eax
     
     mov eax, dword [SendEOIEntry]
     mov dword [SendEOI], eax
