@@ -7,15 +7,16 @@
  */
 
 #include "interrupt.h"
+#include "keyboard.h"
 #include "task.h"
 #include "mutex.h"
+#include "screen.h"
 
 #define TYPE_TASK_OPT    0
 #define TYPE_MUTEX_OPT   1
+#define TYPE_KEY_OPT     2
 
 extern byte ReadPort(ushort port);
-
-extern volatile Task* gCTaskAddr;
 
 void TimerHandler()
 {
@@ -36,7 +37,9 @@ void KeyboardHandler()
     byte sc = ReadPort(0x60);
     
     PutScanCode(sc);
-
+    
+    NotifyKeyCode();
+    
     SendEOI(MASTER_EOI_PORT);
 }
 
@@ -51,7 +54,9 @@ void SysCallHandler(uint type, uint cmd, uint param1, uint param2)   // __cdecl_
         case TYPE_MUTEX_OPT:
             MutexCallHandler(cmd, param1, param2);
             break;
-
+        case TYPE_KEY_OPT:
+            KeyCallHandler(cmd, param1, param2);
+            break;
         default:
             break;
     }
@@ -59,20 +64,20 @@ void SysCallHandler(uint type, uint cmd, uint param1, uint param2)   // __cdecl_
 
 void PageFaultHandler()
 {
-    SetPrintPos(0, 6);
+    SetPrintPos(ERR_START_W, ERR_START_H);
     
     PrintString("Page Fault: kill ");
-    PrintString(gCTaskAddr->name);
+    PrintString(CurrentTaskName());
     
     TaskCallHandler(TASK_CMD_KILL, 0, 0);
 }
 
 void SegmentFaultHandler()
 {
-    SetPrintPos(0, 6);
+    SetPrintPos(ERR_START_W, ERR_START_H);
     
     PrintString("Segment Fault: kill ");
-    PrintString(gCTaskAddr->name);
+    PrintString(CurrentTaskName());
     
     TaskCallHandler(TASK_CMD_KILL, 0, 0);
 }

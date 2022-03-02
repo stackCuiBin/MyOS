@@ -10,6 +10,7 @@
 #include "memory.h"
 #include "syscall.h"
 #include "list.h"
+#include "screen.h"
 
 typedef struct 
 {
@@ -57,12 +58,13 @@ static int Fetch(char type, char* c)
     return ret;
 }
 
-void ProducerA()
+static void ProducerA()
 {
     int next = 0;
     int run = 1;
-
-    SetPrintPos(0, 12);
+    
+    SetPrintPos(TASK_START_W, TASK_START_H);
+    
     PrintString(__FUNCTION__);
 
     while (1) {
@@ -73,10 +75,10 @@ void ProducerA()
             Store(c);
 
             g_num++;
-
-            SetPrintPos(12 + next, 12);
+            
+            SetPrintPos(TASK_START_W + 12 + next, TASK_START_H);
             PrintChar(c);
-
+            
             next++;
         }
         ExitCritical(g_mutex);
@@ -88,12 +90,13 @@ void ProducerA()
     }
 }
 
-void ProducerB()
+static void ProducerB()
 {
     int next = 0;
     int run = 1;
-
-    SetPrintPos(0, 14);
+    
+    SetPrintPos(TASK_START_W, TASK_START_H + 2);
+    
     PrintString(__FUNCTION__);
 
     while (1) {
@@ -104,10 +107,10 @@ void ProducerB()
             Store(c);
 
             g_num++;
-
-            SetPrintPos(12 + next, 14);
+            
+            SetPrintPos(TASK_START_W + 12 + next, TASK_START_H + 2);
             PrintChar(c);
-
+            
             next++;
         }
         ExitCritical(g_mutex);
@@ -119,12 +122,13 @@ void ProducerB()
     }
 }
 
-void ConsumerA()
+static void ConsumerA()
 {
     int next = 0;
     int run = 1;
-
-    SetPrintPos(0, 16);
+    
+    SetPrintPos(TASK_START_W, TASK_START_H + 4);
+    
     PrintString(__FUNCTION__);
 
     while (1) {
@@ -132,7 +136,7 @@ void ConsumerA()
 
         EnterCritical(g_mutex);
         if ((run = (g_get > 0)) && Fetch('A', &c)) {
-            SetPrintPos(12 + next++, 16);
+            SetPrintPos(TASK_START_W + 12 + next++, TASK_START_H + 4);
             PrintChar(c);
 
             g_get--;
@@ -146,12 +150,13 @@ void ConsumerA()
     }
 }
 
-void ConsumerB()
+static void ConsumerB()
 {
     int next = 0;
     int run = 1;
-
-    SetPrintPos(0, 18);
+    
+    SetPrintPos(TASK_START_W, TASK_START_H + 6);
+    
     PrintString(__FUNCTION__);
 
     while (1) {
@@ -159,7 +164,7 @@ void ConsumerB()
 
         EnterCritical(g_mutex);
         if ((run = (g_get > 0)) && Fetch('B', &c)) {
-            SetPrintPos(12 + next++, 18);
+            SetPrintPos(TASK_START_W + 12 + next++, TASK_START_H + 6);
             PrintChar(c);
 
             g_get--;
@@ -167,7 +172,7 @@ void ConsumerB()
         ExitCritical(g_mutex);
 
         if (run)
-            Delay(1);
+            Delay(2);
         else
             break;
     }
@@ -176,17 +181,20 @@ void ConsumerB()
 static void Init()
 {
     g_mutex = CreateMutex(Strict);
+    g_num = 0;
+    g_get = NUM;
+    
     List_Init(&g_store);
 }
 
-static DeInit()
+static void DeInit()
 {
     Wait("PA");
     Wait("PB");
     Wait("CA");
     Wait("CB");
-
-    SetPrintPos(0, 20);
+    
+    SetPrintPos(TASK_START_W, TASK_START_H + 8);
     PrintString(__FUNCTION__);
     
     DestroyMutex(g_mutex);

@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-14 21:20:33
- * @LastEditTime: 2022-02-28 00:44:03
+ * @LastEditTime: 2022-03-03 01:44:39
  * @LastEditors: Cuibb
  */
 
@@ -11,6 +11,7 @@
 
 #include "kernel.h"
 #include "queue.h"
+#include "event.h"
 
 typedef struct {
     uint gs;
@@ -52,10 +53,11 @@ typedef struct
     void       (*tmain)();
     uint       id;
     ushort     current; /* 已执行时间数 */
-    ushort     total;  /* 执行的总时间数 */
+    ushort     total;   /* 执行的总时间数 */
     char       name[16];
     Queue      wait; 
     byte*      stack;
+    Event*     event;
 } Task;
 
 typedef struct 
@@ -94,7 +96,10 @@ extern void (* const LoadTask)(volatile Task* pt);
 void TaskModInit();
 void LaunchTask();
 void Schedule();
-void MtxSchedule(uint action);
 void TaskCallHandler(uint cmd, uint param1, uint param2);
+void EventSchedule(uint action, Event* event);
+
+const char* CurrentTaskName();
+uint CurrentTaskId();
 
 #endif

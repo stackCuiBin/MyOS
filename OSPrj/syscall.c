@@ -38,7 +38,7 @@ void Wait(const char* name)
 void RegApp(const char* name, void(*tmain)(), byte pri)
 {
     if (name && tmain) {
-        AppInfo info;
+        AppInfo info = {0};
 
         info.name = name;
         info.tmain = tmain;
@@ -77,6 +77,15 @@ uint DestroyMutex(uint mutex)
     uint ret = 0;
     
     SysCall(1, 3, mutex, &ret);
+    
+    return ret;
+}
+
+uint ReadKey()
+{
+    uint ret = 0;
+    
+    SysCall(2, 0, &ret, 0);
     
     return ret;
 }

@@ -2,12 +2,14 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-14 21:20:47
- * @LastEditTime: 2022-02-28 01:12:15
+ * @LastEditTime: 2022-03-02 23:13:20
  * @LastEditors: Cuibb
  */
 
 #include "utility.h"
 #include "task.h"
+#include "mutex.h"
+#include "queue.h"
 
 #define MAX_TASK_NUM        16
 #define MAX_RUNNING_TASK    8
@@ -25,7 +27,6 @@ static Queue gAppToRun = {0};
 static Queue gFreeTaskNode = {0};
 static Queue gReadyTask = {0};
 static Queue gRunningTask = {0};
-static Queue gWaittingTask = {0};
 static TSS gTSS = {0};
 static TaskNode* gIdleTask = NULL;
 static uint gPid = PID_BASE;
@@ -48,7 +49,7 @@ static void IdleTask()
     while( 1 );
 }
 
-static void InitTask(Task* pt, uint id, const char* name, void(*entry)(), byte pri)
+static void InitTask(Task* pt, uint id, const char* name, void(*entry)(), ushort pri)
 {
     pt->rv.cs = LDT_CODE32_SELECTOR;
     pt->rv.gs = LDT_VIDEO_SELECTOR;
@@ -65,7 +66,8 @@ static void InitTask(Task* pt, uint id, const char* name, void(*entry)(), byte p
     pt->id = id;
     pt->current = 0;
     pt->total = MAX_TIME_SLICE - pri;
-
+    pt->event = NULL;
+	
     if (name) {
         StrnCpy(pt->name, name, sizeof(pt->name)-1);
     } else {
@@ -126,7 +128,7 @@ static void CreateTask()
 
             Queue_Add(&gReadyTask, (QueueNode*)tn);
 
-            Free(an->app.name);
+            Free((void*)an->app.name);
             Free(an);
         } else {
             break;
@@ -190,7 +192,11 @@ static void WaittingToReady(Queue* wq)
 {
     while ( Queue_Length(wq) > 0 ) {
         TaskNode* tn = (TaskNode*)Queue_Front(wq);
-
+        
+        DestroyEvent(tn->task.event);
+        
+        tn->task.event = NULL;
+        
         Queue_Remove(wq);
         Queue_Add(&gReadyTask, (QueueNode*)tn);
     }
@@ -241,7 +247,6 @@ void TaskModInit()
     Queue_Init(&gFreeTaskNode);
     Queue_Init(&gRunningTask);
     Queue_Init(&gReadyTask);
-    Queue_Init(&gWaittingTask);
 
     for (i = 0; i < MAX_TASK_NUM; i++) {
         Queue_Add(&gFreeTaskNode, (QueueNode*)AddrOff(gTaskBuff, i));
@@ -255,15 +260,6 @@ void TaskModInit()
     
     ReadyToRunning();
     CheckRunningTask();
-}
-
-void LaunchTask()
-{
-    gCTaskAddr = &(((TaskNode*)Queue_Front(&gRunningTask))->task);
-
-    PrepareForRun(gCTaskAddr);
-    
-    RunTask(gCTaskAddr);
 }
 
 static void ScheduleNext()
@@ -281,20 +277,100 @@ static void ScheduleNext()
     LoadTask(gCTaskAddr);
 }
 
+void LaunchTask()
+{
+    gCTaskAddr = &((TaskNode*)Queue_Front(&gRunningTask))->task;
+    
+    PrepareForRun(gCTaskAddr);
+    
+    RunTask(gCTaskAddr);
+}
+
 void Schedule()
 {
     RunningToReady();
     ScheduleNext();
 }
 
-void MtxSchedule(uint action)
+static void WaitEvent(Queue* wait, Event* event)
 {
-    if ( IsEqual(action, NOTIFY) ) {
-        WaittingToReady(&gWaittingTask);
+    gCTaskAddr->event = event;
+    
+    RunningToWaitting(wait);
+    
+    ScheduleNext();
+}
+
+static void TaskSchedule(uint action, Event* event)
+{
+    Task* task = (Task*)event->id;
+    
+    if( action == NOTIFY )
+    {
+        WaittingToReady(&task->wait);
     }
-    else if ( IsEqual(action, WAIT) ) {
-        RunningToWaitting(&gWaittingTask);
-        ScheduleNext();
+    else if( action == WAIT )
+    {
+        WaitEvent(&task->wait, event);
+    }
+}
+
+static void MutexSchedule(uint action, Event* event)
+{
+    Mutex* mutex = (Mutex*)event->id;
+    
+    if( action == NOTIFY )
+    {
+        WaittingToReady(&mutex->wait);
+    }
+    else if( action == WAIT )
+    {
+        WaitEvent(&mutex->wait, event);
+    }
+}
+
+static void KeySchedule(uint action, Event* event)
+{
+    Queue* wait = (Queue*)event->id;
+    
+    if( action == NOTIFY )
+    {
+        uint kc = event->param1;
+        ListNode* pos = NULL;
+        
+        List_ForEach((List*)wait, pos)
+        {
+            TaskNode* tn = (TaskNode*)pos;
+            Event* we = tn->task.event;
+            uint* ret = (uint*)we->param1;
+            
+            *ret = kc;
+        }
+        
+        WaittingToReady(wait);
+    }
+    else if( action == WAIT )
+    {
+        WaitEvent(wait, event);
+    }
+}
+
+
+void EventSchedule(uint action, Event* event)
+{
+    switch(event->type)
+    {
+        case KeyEvent:
+            KeySchedule(action, event);
+            break;
+        case TaskEvent:
+            TaskSchedule(action, event);
+            break;
+        case MutexEvent:
+            MutexSchedule(action, event);
+            break;
+        default:
+            break;
     }
 }
 
@@ -302,9 +378,10 @@ static void KillTask()
 {
     QueueNode* node = Queue_Remove(&gRunningTask);
     Task* task = &((TaskNode*)node)->task;
-
-    WaittingToReady(&task->wait);
-
+    Event evt = {TaskEvent, (uint)task, 0, 0};
+    
+    EventSchedule(NOTIFY, &evt);
+    
     task->id = 0;
 
     Queue_Add(&gFreeTaskNode, node);
@@ -315,10 +392,15 @@ static void KillTask()
 static void WaitTask(const char* name)
 {
     Task* task = FindTaskByName(name);
-
-    if (task) {
-        RunningToWaitting(&task->wait);
-        ScheduleNext();
+    
+    if( task )
+    {
+        Event* evt = CreateEvent(TaskEvent, (uint)task, 0, 0);
+        
+        if( evt )
+        {
+            EventSchedule(WAIT, evt);
+        }
     }
 }
 
@@ -342,3 +424,15 @@ void TaskCallHandler(uint cmd, uint param1, uint param2)
             break;
     }
 }
+
+const char* CurrentTaskName()
+{
+    return gCTaskAddr->name;
+}
+
+uint CurrentTaskId()
+{
+    return gCTaskAddr->id;
+}
+
+

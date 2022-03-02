@@ -10,15 +10,9 @@
 #include "utility.h"
 #include "list.h"
 
-#ifdef MEM_DEBUG
-#include <stdio.h>
-#include <time.h>
-#endif
-
-#define FM_ALLOC_SIZE          32
-#define FM_NODE_SIZE           sizeof(FMemNode)
-
-#define VM_HEAD_SIZE           sizeof(VMemHead)
+#define FM_ALLOC_SIZE    32
+#define FM_NODE_SIZE     sizeof(FMemNode)
+#define VM_HEAD_SIZE     sizeof(VMemHead)
 
 typedef byte(FMemUnit)[FM_ALLOC_SIZE];
 typedef union _FMemNode FMemNode;
@@ -45,43 +39,49 @@ typedef struct
     byte* ptr;
 }VMemHead;
 
-static FMemList gFMList = {0};
-static List gVMList = {0};
+
+static FMemList gFMemList = {0};
+static List gVMemList = {0};
 
 static void FMemInit(byte* mem, uint size)
 {
-    FMemNode* pn = NULL;
-    uint max = 0;
+    FMemNode* p = NULL;
     int i = 0;
-
-    CHECK_PTR(mem);
-
-    max = size / (FM_ALLOC_SIZE + FM_NODE_SIZE);
-    gFMList.max = max;
-    gFMList.node = (FMemNode*)mem;
-    gFMList.nbase = (FMemNode*)mem;
-    gFMList.ubase = (FMemUnit*)AddrOff(mem, FM_NODE_SIZE * max);
-
-    pn = gFMList.node;
-    for(i = 0; i < (max -1); i++) {
-        FMemNode* current = (FMemNode*)AddrOff(pn, i);
-        FMemNode* next = (FMemNode*)AddrOff(pn, i+1);
+    uint max = 0;
+    
+    max = size / (FM_NODE_SIZE + FM_ALLOC_SIZE);
+    
+    gFMemList.max = max;
+    gFMemList.nbase = (FMemNode*)mem;
+    gFMemList.ubase = (FMemUnit*)((uint)mem + max * FM_NODE_SIZE);
+    gFMemList.node = (FMemNode*)mem;
+    
+    p = gFMemList.node;
+    
+    for(i=0; i<max-1; i++)
+    {
+        FMemNode* current = (FMemNode*)AddrOff(p, i);
+        FMemNode* next = (FMemNode*)AddrOff(p, i+1);
+        
         current->next = next;
     }
-    ((FMemNode*)AddrOff(pn, i))->next = NULL;;
+    
+    ((FMemNode*)AddrOff(p, i))->next = NULL;
 }
 
 static void* FMemAlloc()
 {
     void* ret = NULL;
-
-    if ( gFMList.node ) {
-        FMemNode* alloc = gFMList.node;
-        int index = (int)AddrIndex(alloc, gFMList.nbase);
-
-        ret = AddrOff(gFMList.ubase, index);
-
-        gFMList.node = alloc->next;
+    
+    if( gFMemList.node )
+    {
+        FMemNode* alloc = gFMemList.node;
+        int index = AddrIndex(alloc, gFMemList.nbase);
+        
+        ret = AddrOff(gFMemList.ubase, index);
+        
+        gFMemList.node = alloc->next;
+        
         alloc->ptr = ret;
     }
 
@@ -91,14 +91,18 @@ static void* FMemAlloc()
 static int FMemFree(void* ptr)
 {
     int ret = 0;
-
-    if ( ptr ) {
-        int index = AddrIndex((FMemUnit*)ptr, gFMList.ubase);
-        FMemNode* pn = AddrOff(gFMList.nbase, index);
-
-        if ( (index < gFMList.max) && IsEqual(ptr, pn->ptr) ) {
-            pn->next = gFMList.node;
-            gFMList.node = pn;
+    
+    if( ptr )
+    {
+        uint index = AddrIndex((FMemUnit*)ptr, gFMemList.ubase);
+        FMemNode* node = AddrOff(gFMemList.nbase, index);
+        
+        if( (index < gFMemList.max) && IsEqual(node->ptr, ptr) )
+        {
+            node->next = gFMemList.node;
+            
+            gFMemList.node = node;
+            
             ret = 1;
         }
     }
@@ -108,30 +112,31 @@ static int FMemFree(void* ptr)
 
 static void VMemInit(byte* mem, uint size)
 {
+    List_Init((List*)&gVMemList);
     VMemHead* head = (VMemHead*)mem;
-    int i = 0;
-
-    CHECK_PTR(head);
-
-    List_Init(&gVMList);
+    
     head->used = 0;
     head->free = size - VM_HEAD_SIZE;
     head->ptr = AddrOff(head, 1);
-
-    List_AddTail(&gVMList, (ListNode*)head);
-}
+    
+    List_AddTail(&gVMemList, (ListNode*)head);
+} 
 
 static void* VMemAlloc(uint size)
 {
-    ListNode* pn = NULL;
+    ListNode* pos = NULL;
     VMemHead* ret = NULL;
     uint alloc = size + VM_HEAD_SIZE;
-
-    List_ForEach(&gVMList, pn) {
-        VMemHead* current = (VMemHead*)pn;
-
-        if ( current->free >= alloc ) {
-            ret = (VMemHead*)((uint)current->ptr + (current->used + current->free) - alloc);
+    
+    List_ForEach(&gVMemList, pos)
+    {
+        VMemHead* current = (VMemHead*)pos;
+        
+        if( current->free >= alloc )
+        {
+            byte* mem = (byte*)((uint)current->ptr + (current->used + current->free) - alloc);
+            
+            ret = (VMemHead*)mem;
             ret->used = size;
             ret->free = 0;
             ret->ptr = AddrOff(ret, 1);
@@ -150,20 +155,25 @@ static void* VMemAlloc(uint size)
 static int VMemFree(void* ptr)
 {
     int ret = 0;
-
-    if ( ptr ) {
-        ListNode* pn = NULL;
-
-        List_ForEach(&gVMList, pn) {
-            VMemHead* current = (VMemHead*)pn;
-
-            if ( IsEqual(current->ptr, ptr) ) {
+    
+    if( ptr )
+    {
+        ListNode* pos = NULL;
+        
+        List_ForEach(&gVMemList, pos)
+        {
+            VMemHead* current = (VMemHead*)pos;
+            
+            if( IsEqual(current->ptr, ptr) )
+            {
                 VMemHead* prev = (VMemHead*)(current->head.prev);
+                
                 prev->free += current->used + current->free + VM_HEAD_SIZE;
 
                 List_DelNode((ListNode*)current);
                 
                 ret = 1;
+                
                 break;
             }
         }
@@ -174,16 +184,11 @@ static int VMemFree(void* ptr)
 
 void MemModInit(byte* mem, uint size)
 {
-    byte* fmem = NULL;
-    byte* vmem = NULL;
+    byte* fmem = mem;
     uint fsize = size / 2;
+    byte* vmem = AddrOff(fmem, fsize);
     uint vsize = size - fsize;
-
-    CHECK_PTR(mem);
-
-    fmem = mem;
-    vmem = AddrOff(mem, fsize);
-
+    
     FMemInit(fmem, fsize);
     VMemInit(vmem, vsize);
 }
@@ -191,127 +196,29 @@ void MemModInit(byte* mem, uint size)
 void* Malloc(uint size)
 {
     void* ret = NULL;
-
-    if ( size <= FM_ALLOC_SIZE ) {
-        ret = FMemAlloc(size);
+    
+    if( size <= FM_ALLOC_SIZE )
+    {
+        ret = FMemAlloc();
     }
-
-    if ( !ret ) {
+    
+    if( !ret ) 
+    {
         ret = VMemAlloc(size);
     }
 
     return ret;
 }
+
 void Free(void* ptr)
 {
-    if ( !FMemFree(ptr) ) {
-        VMemFree(ptr);
+    if( ptr )
+    {
+        if( !FMemFree(ptr) )
+        {
+            VMemFree(ptr);
+        }
     }
 }
 
-#ifdef MEM_DEBUG
-void FMemTest()
-{
-    static byte fmem[0x10000] = {0};
-    static void* array[2000] = {0};
-    int i = 0;
-
-    FMemNode* pn = NULL;
-    
-    FMemInit(fmem, sizeof(fmem));
-
-    pn = gFMList.node;
-
-    while ( pn ) {
-        i++;
-        pn = pn->next;
-    }
-    printf("i = %d\n", i);
-
-    for (i = 0; i < 100000; i++) {
-        int ii = i % 2000;
-        byte* p = FMemAlloc();
-
-        if ( array[ii] ) {
-            FMemFree(array[ii]);
-            array[ii] = NULL;
-        }
-        array[ii] = p;
-
-        if ( (i % 3) == 0 ) {
-            int index = rand() % 2000;
-            FMemFree(array[index]);
-            array[index] = NULL;
-        }
-    }
-
-    for (i = 0; i < 2000; i++) {
-        FMemFree(array[i]);
-        array[i] = NULL;
-    }
-
-    i = 0;
-    pn = gFMList.node;
-    while ( pn ) {
-        i++;
-        pn = pn->next;
-    }
-    printf("i = %d\n", i);
-}
-
-void VMemTest()
-{
-    static byte vmem[0x10000] = {0};
-    static void* array[2000] = {0};
-    ListNode* pn = NULL;
-    int i = 0;
-
-    srand(time(NULL));
-
-    VMemInit(vmem, sizeof(vmem));
-
-    List_ForEach(&gVMList, pn) {
-        VMemHead* current = (VMemHead*)pn;
-
-        i++;
-        printf("i = %d\n", i);
-        printf("used: %d\n", current->used);
-        printf("free: %d\n", current->free);
-        printf("\n");
-    }
-
-    for (i = 0; i < 100000; i++) {
-        int ii = i % 2000;
-        byte* p = VMemAlloc(1 + rand() % 400);
-
-        if ( array[ii] ) {
-            VMemFree(array[ii]);
-            array[ii] = NULL;
-        }
-        array[ii] = p;
-
-        if ( (i % 3) == 0 ) {
-            int index = rand() % 2000;
-            VMemFree(array[index]);
-            array[index] = NULL;
-        }
-    }
-
-    for (i = 0; i < 2000; i++) {
-        VMemFree(array[i]);
-        array[i] = NULL;
-    }
-
-    i = 0;
-    List_ForEach(&gVMList, pn) {
-        VMemHead* current = (VMemHead*)pn;
-
-        i++;
-        printf("i = %d\n", i);
-        printf("used: %d\n", current->used);
-        printf("free: %d\n", current->free);
-        printf("\n");
-    }
-}
-#endif
 

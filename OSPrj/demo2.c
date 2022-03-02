@@ -2,24 +2,25 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2022-02-27 14:54:17
- * @LastEditTime: 2022-02-28 01:32:53
+ * @LastEditTime: 2022-03-03 00:38:12
  * @LastEditors: Cuibb
  */
 
 #include "demo2.h"
 #include "syscall.h"
 #include "utility.h"
+#include "screen.h"
 
 static const NUM = 50;
 static uint g_mutex_write = 0;
 static uint g_mutex_read = 0;
 static char g_data = 'A';
 static int g_count = 0;
+static int g_rnext = TASK_START_W;
+static int g_rcol = TASK_START_H + 2;
 
-void Reader()
+static void Reader()
 {
-    static int next = 0;
-    static int col = 14;
     int run = 1;
 
     while (run) {
@@ -31,14 +32,14 @@ void Reader()
 
         run = !!g_data;
         if (run) {
-            SetPrintPos(next, col);
+            SetPrintPos(g_rnext, g_rcol);
             PrintChar(g_data);
         }
 
-        next++;
-        if (next == NUM) {
-            next = 0;
-            col++;
+        g_rnext++;
+        if (g_rnext == NUM) {
+            g_rnext = 0;
+            g_rcol++;
         }
 
         EnterCritical(g_mutex_read);
@@ -51,18 +52,19 @@ void Reader()
     }
 }
 
-void Writer()
+static void Writer()
 {
     int next = 0;
     
-    SetPrintPos(0, 12);
+    SetPrintPos(TASK_START_W, TASK_START_H);
+    
     PrintString(__FUNCTION__);
 
     while (next < NUM) {
         EnterCritical(g_mutex_write);
         g_data++;
-
-        SetPrintPos(12 + next, 12);
+        
+        SetPrintPos(TASK_START_W + 12 + next, TASK_START_H);
         PrintChar(g_data);
         ExitCritical(g_mutex_write);
 
@@ -79,16 +81,20 @@ static void Init()
 {
     g_mutex_write = CreateMutex(Normal);
     g_mutex_read = CreateMutex(Strict);
+    g_rnext = TASK_START_W;
+    g_rcol = TASK_START_H + 2;
+    g_data = 'A';
+    g_count = 0;
 }
 
-static DeInit()
+static void DeInit()
 {
     Wait("Writer");
     Wait("ReaderA");
     Wait("ReaderB");
     Wait("ReaderC");
-
-    SetPrintPos(0, 20);
+    
+    SetPrintPos(TASK_START_W, TASK_START_H + 8);
     PrintString(__FUNCTION__);
     
     DestroyMutex(g_mutex_write);

@@ -9,21 +9,7 @@
 #include "mutex.h"
 #include "memory.h"
 #include "task.h"
-
-extern volatile Task* gCTaskAddr;
-
-enum
-{
-    Normal,
-    Strict
-};
-
-typedef struct 
-{
-    ListNode head;
-    uint type;
-    uint lock;
-} Mutex;
+#include "event.h"
 
 static List gMList = {0};
 
@@ -33,6 +19,8 @@ static Mutex* SysCreateMutex(uint type)
     
     if( ret )
     {
+        Queue_Init(&ret->wait);
+        
         ret->lock = 0;  
         ret->type = type;
         
@@ -86,13 +74,23 @@ static void SysDestroyMutex(Mutex* mutex, uint* result)
     }
 }
 
+static void DoWait(Mutex* mutex, uint* wait)
+{
+    Event* evt = CreateEvent(MutexEvent, (uint)mutex, 0, 0);
+    
+    if( evt )
+    {
+        *wait = 1;
+        
+        EventSchedule(WAIT, evt);
+    }
+}
+
 static void SysNormalEnter(Mutex* mutex, uint* wait)
 {
     if( mutex->lock )
     {
-        *wait = 1;
-        
-        MtxSchedule(WAIT);
+        DoWait(mutex, wait);
     }
     else
     {
@@ -106,20 +104,18 @@ static void SysStrictEnter(Mutex* mutex, uint* wait)
 {
     if( mutex->lock )
     {
-        if( IsEqual(mutex->lock, gCTaskAddr) )
+        if( mutex->lock == CurrentTaskId() )
         {
             *wait = 0;
         }
         else
         {         
-            *wait = 1;
-             
-            MtxSchedule(WAIT);
+            DoWait(mutex, wait);
         }
     }
     else
     {
-        mutex->lock = (uint)gCTaskAddr;
+        mutex->lock = CurrentTaskId();
             
         *wait = 0;
     }
@@ -145,18 +141,18 @@ static void SysEnterCritical(Mutex* mutex, uint* wait)
 
 static void SysNormalExit(Mutex* mutex)
 {
+    Event evt = {MutexEvent, (uint)mutex, 0, 0};
+    
     mutex->lock = 0;
     
-    MtxSchedule(NOTIFY);
+    EventSchedule(NOTIFY, &evt);
 }
 
 static void SysStrictExit(Mutex* mutex)
 {
-    if( IsEqual(mutex->lock, gCTaskAddr) )
+    if( mutex->lock == CurrentTaskId() )
     {
-        mutex->lock = 0;
-            
-        MtxSchedule(NOTIFY);
+        SysNormalExit(mutex);
     }
     else
     {   

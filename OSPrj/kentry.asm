@@ -132,8 +132,8 @@ ReadPort:
     mov  ebp, esp
 
     xor eax, eax
-
-    mov dx, [esp + 8]
+    
+    mov dx, [ebp + 8]
     in  al, dx
 
     nop
@@ -145,16 +145,16 @@ ReadPort:
     ret
 
 ;
-; void WritePort(ushort port, ushort value)
+; void WritePort(ushort port, byte value)
 ;
 WritePort:
     push ebp
     mov  ebp, esp
 
     xor eax, eax
-
-    mov dx, [esp + 8]
-    mov al, [esp + 12]
+    
+    mov dx, [ebp + 8]
+    mov al, [ebp + 12]
     out dx, al
 
     nop

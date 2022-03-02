@@ -11,15 +11,9 @@
 
 #include "type.h"
 
-// #define MEM_DEBUG    1
-
 void MemModInit(byte* mem, uint size);
 void* Malloc(uint size);
 void Free(void* ptr);
 
-#ifdef MEM_DEBUG
-void FMemTest();
-void VMemTest();
-#endif
 
 #endif // MEMORY_H
