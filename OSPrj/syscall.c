@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-12-14 00:09:07
- * @LastEditTime: 2022-02-28 00:41:29
+ * @LastEditTime: 2022-03-03 22:55:17
  * @LastEditors: Cuibb
  */
 
@@ -13,13 +13,13 @@
 // 当可选参数不被省略，寄存器前使用两个%%作为参数
 #define SysCall(type, cmd, param1, param2)              \
                 asm volatile(                           \
-                    "movl  $" #type ",  %%eax \n"       \ 
+                    "movl  $" #type ",  %%eax \n"       \
                     "movl  $" #cmd ",   %%ebx \n"       \
                     "movl  %0,          %%ecx \n"       \
                     "movl  %1,          %%edx \n"       \
                     "int   $0x80      \n"               \
                     :                                   \
-                    : "r"(param1), "r"(param2)          \                   
+                    : "r"(param1), "r"(param2)          \
                     : "eax", "ebx", "ecx", "edx"        \
                 );
 
@@ -89,3 +89,13 @@ uint ReadKey()
     
     return ret;
 }
+
+uint GetMemSize()
+{
+    uint ret = 0;
+    
+    SysCall(3, 0, &ret, 0);
+    
+    return ret;
+}
+

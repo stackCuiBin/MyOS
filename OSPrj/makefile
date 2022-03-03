@@ -10,10 +10,12 @@ KERNEL_SRC := kmain.c      \
               ihandler.c   \
               list.c       \
               queue.c      \
-			  memory.c     \
-			  mutex.c      \
-			  keyboard.c   \
-			  event.c
+              memory.c     \
+              mutex.c      \
+              keyboard.c   \
+              event.c      \
+              sysinfo.c    \
+			  hdraw.c
               
 APP_SRC :=    screen.c     \
               utility.c    \

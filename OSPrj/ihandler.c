@@ -11,10 +11,12 @@
 #include "task.h"
 #include "mutex.h"
 #include "screen.h"
+#include "sysinfo.h"
 
 #define TYPE_TASK_OPT    0
 #define TYPE_MUTEX_OPT   1
 #define TYPE_KEY_OPT     2
+#define TYPE_SYSINFO_OPT 3
 
 extern byte ReadPort(ushort port);
 
@@ -56,6 +58,9 @@ void SysCallHandler(uint type, uint cmd, uint param1, uint param2)   // __cdecl_
             break;
         case TYPE_KEY_OPT:
             KeyCallHandler(cmd, param1, param2);
+			
+        case TYPE_SYSINFO_OPT:
+            SysInfoCallHandler(cmd, param1, param2);
             break;
         default:
             break;

@@ -27,16 +27,55 @@ void Delay(int n)
     }
 }
 
-char* StrnCpy(char* dist, const char* src, uint len)
+byte* MemCpy(byte* dst, const byte* src, uint n)
 {
-    char* ret = dist;
+    byte* ret = dst;
+    uint dAddr = (uint)dst;
+    uint sAddr = (uint)src;
+    int i = 0;
+
+    if( dAddr < sAddr )
+    {
+        for(i=0; i<n; i++)
+        {
+            dst[i] = src[i];
+        }
+    }
+
+    if( dAddr > sAddr )
+    {
+        for(i=n-1; i>=0; i--)
+        {
+            dst[i] = src[i];
+        }
+    }
+
+    return ret;
+}
+
+byte* MemSet(byte* dst, uint n, byte val)
+{
+    byte* ret = dst;
+    int i = 0;
+
+    while( i < n )
+    {
+        dst[i++] = val;
+    }
+
+    return ret;
+}
+
+char* StrnCpy(char* dst, const char* src, uint len)
+{
+    char* ret = dst;
     int i = 0;
 
     for (i = 0; src[i] && (i < len); i++) {
-        dist[i] = src[i];
+        dst[i] = src[i];
     }
 
-    dist[i] = 0;
+    dst[i] = 0;
 
     return ret;
 }

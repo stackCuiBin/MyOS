@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2021-11-14 21:20:47
- * @LastEditTime: 2022-03-02 23:13:20
+ * @LastEditTime: 2022-03-03 22:51:46
  * @LastEditors: Cuibb
  */
 
@@ -427,7 +427,7 @@ void TaskCallHandler(uint cmd, uint param1, uint param2)
 
 const char* CurrentTaskName()
 {
-    return gCTaskAddr->name;
+    return (const char*)gCTaskAddr->name;
 }
 
 uint CurrentTaskId()
