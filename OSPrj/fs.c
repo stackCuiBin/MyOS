@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: Cuibb
  * @Date: 2022-03-07 00:01:26
- * @LastEditTime: 2022-03-07 00:05:53
+ * @LastEditTime: 2022-03-07 23:28:55
  * @LastEditors: Cuibb
  */
 
@@ -24,7 +24,9 @@
 #define ROOT_SCT_IDX   1
 #define FIXED_SCT_SIZE 2
 #define SCT_END_FLAG   ((uint)-1)
-#define MAP_ITEM_CNT   (SECT_SIZE/sizeof(uint))
+#define FE_BYTES       sizeof(FileEntry)
+#define FE_ITEM_CNT    (SECT_SIZE / FE_BYTES)
+#define MAP_ITEM_CNT   (SECT_SIZE / sizeof(uint))
 
 typedef struct
 {
@@ -43,6 +45,18 @@ typedef struct
     uint sctNum;
     uint lastBytes;
 } FSRoot;
+
+typedef struct
+{
+    char name[32];
+    uint sctBegin;
+    uint sctNum;
+    uint lastBytes;
+    uint type;
+    uint inSctIdx;
+    uint inSctOff;
+    uint reserved[2];
+} FileEntry;
 
 typedef struct
 {
@@ -259,6 +273,374 @@ static uint MarkSector(uint si)
     return ret;
 }
 
+static void AddToLast(uint sctBegin, uint si)
+{
+    uint last = FindLast(sctBegin);
+
+    if( last != SCT_END_FLAG )
+    {
+        MapPos lmp = FindInMap(last);
+        MapPos smp = FindInMap(si);
+
+        if( lmp.pSct && smp.pSct )
+        {
+            if( lmp.sctOff == smp.sctOff )
+            {
+                uint* pInt = AddrOff(lmp.pSct, lmp.idxOff);
+
+                *pInt = lmp.sctOff * MAP_ITEM_CNT + smp.idxOff;
+
+                pInt = AddrOff(lmp.pSct, smp.idxOff);
+
+                *pInt = SCT_END_FLAG;
+
+                HDRawWrite(lmp.sctOff + FIXED_SCT_SIZE, (byte*)lmp.pSct);
+            }
+            else
+            {
+                uint* pInt = AddrOff(lmp.pSct, lmp.idxOff);
+
+                *pInt = smp.sctOff * MAP_ITEM_CNT + smp.idxOff;
+
+                pInt = AddrOff(smp.pSct, smp.idxOff);
+
+                *pInt = SCT_END_FLAG;
+
+                HDRawWrite(lmp.sctOff + FIXED_SCT_SIZE, (byte*)lmp.pSct);
+                HDRawWrite(smp.sctOff + FIXED_SCT_SIZE, (byte*)smp.pSct);
+            }
+        }
+
+        Free(lmp.pSct);
+        Free(smp.pSct);
+    }
+}
+
+static uint CheckStorage(FSRoot* fe)
+{
+    uint ret = 0;
+
+    if( fe->lastBytes == SECT_SIZE )
+    {
+        uint si = AllocSector();
+
+        if( si != SCT_END_FLAG )
+        {
+            if( fe->sctBegin == SCT_END_FLAG )
+            {
+                fe->sctBegin = si;
+            }
+            else
+            {
+                AddToLast(fe->sctBegin, si);
+            }
+
+            fe->sctNum++;
+            fe->lastBytes = 0;
+
+            ret = 1;
+        }
+    }
+
+    return ret;
+}
+
+static uint CreateFileEntry(const char* name, uint sctBegin, uint lastBytes)
+{
+    uint ret = 0;
+    uint last = FindLast(sctBegin);
+    FileEntry* feBase = NULL;
+
+    if( (last != SCT_END_FLAG) && (feBase = (FileEntry*)ReadSector(last)) )
+    {
+        uint offset = lastBytes / FE_BYTES;
+        FileEntry* fe = AddrOff(feBase, offset);
+
+        StrnCpy(fe->name, name, sizeof(fe->name) - 1);
+
+        fe->type = 0;
+        fe->sctBegin = SCT_END_FLAG;
+        fe->sctNum = 0;
+        fe->inSctIdx = last;
+        fe->inSctOff = offset;
+        fe->lastBytes = SECT_SIZE;
+
+        ret = HDRawWrite(last, (byte*)feBase);
+    }
+
+    Free(feBase);
+
+    return ret;
+}
+
+static uint CreateInRoot(const char* name)
+{
+    FSRoot* root = (FSRoot*)ReadSector(ROOT_SCT_IDX);
+    uint ret = 0;
+
+    if( root )
+    {
+        CheckStorage(root);
+
+        if( CreateFileEntry(name, root->sctBegin, root->lastBytes) )
+        {
+            root->lastBytes += FE_BYTES;
+
+            ret = HDRawWrite(ROOT_SCT_IDX, (byte*)root);
+        }
+    }
+
+    Free(root);
+
+    return ret;
+}
+
+static FileEntry* FindInSector(const char* name, FileEntry* feBase, uint cnt)
+{
+    FileEntry* ret = NULL;
+    uint i = 0;
+
+    for(i=0; i<cnt; i++)
+    {
+        FileEntry* fe = AddrOff(feBase, i);
+
+        if( StrCmp(fe->name, name, -1) )
+        {
+            ret = (FileEntry*)Malloc(FE_BYTES);
+
+            if( ret )
+            {
+                *ret = *fe;
+            }
+
+            break;
+        }
+    }
+
+    return ret;
+}
+
+static FileEntry* FindFileEntry(const char* name, uint sctBegin, uint sctNum, uint lastBytes)
+{
+    FileEntry* ret = NULL;
+    uint next = sctBegin;
+    uint i = 0;
+
+    for(i=0; i<(sctNum-1); i++)
+    {
+        FileEntry* feBase = (FileEntry*)ReadSector(next);
+
+        if( feBase )
+        {
+            ret = FindInSector(name, feBase, FE_ITEM_CNT);
+        }
+
+        Free(feBase);
+
+        if( !ret )
+        {
+            next = NextSector(next);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    if( !ret )
+    {
+        uint cnt = lastBytes / FE_BYTES;
+        FileEntry* feBase = (FileEntry*)ReadSector(next);
+
+        if( feBase )
+        {
+            ret = FindInSector(name, feBase, cnt);
+        }
+
+        Free(feBase);
+    }
+
+    return ret;
+}
+
+static FileEntry* FindInRoot(const char* name)
+{
+    FileEntry* ret = NULL;
+    FSRoot* root = (FSRoot*)ReadSector(ROOT_SCT_IDX);
+
+    if( root && root->sctNum )
+    {
+        ret = FindFileEntry(name, root->sctBegin, root->sctNum, root->lastBytes);
+    }
+
+    Free(root);
+
+    return ret;
+}
+
+uint FCreate(const char* fn)
+{
+    uint ret = FExisted(fn);
+
+    if( ret == FS_NONEXISTED )
+    {
+        ret = CreateInRoot(fn) ? FS_SUCCEED : FS_FAILED;
+    }
+
+    return ret;
+}
+
+uint FExisted(const char* fn)
+{
+    uint ret = FS_FAILED;
+
+    if( fn )
+    {
+        FileEntry* fe = FindInRoot(fn);
+
+        ret = fe ? FS_EXISTED : FS_NONEXISTED;
+
+        Free(fe);
+    }
+
+    return ret;
+}
+
+static uint IsOpened(const char* name)
+{
+    uint ret = 0;
+
+    return ret;
+}
+
+static uint FreeFile(uint sctBegin)
+{
+    uint slider = sctBegin;
+    uint ret = 0;
+
+    while( slider != SCT_END_FLAG )
+    {
+        uint next = NextSector(slider);
+
+        ret += FreeSector(slider);
+
+        slider = next;
+    }
+
+    return ret;
+}
+
+static void MoveFileEntry(FileEntry* dst, FileEntry* src)
+{
+    uint inSctIdx = dst->inSctIdx;
+    uint inSctOff = dst->inSctOff;
+
+    *dst = *src;
+
+    dst->inSctIdx = inSctIdx;
+    dst->inSctOff = inSctOff;
+}
+
+static uint AdjustStorage(FSRoot* fe)
+{
+    uint ret = 0;
+
+    if( !fe->lastBytes )
+    {
+        uint last = FindLast(fe->sctBegin);
+        uint prev = FindPrev(fe->sctBegin, last);
+
+        if( FreeSector(last) && MarkSector(prev) )
+        {
+            fe->sctNum--;
+            fe->lastBytes = SECT_SIZE;
+
+            if( !fe->sctNum )
+            {
+                fe->sctBegin = SCT_END_FLAG;
+            }
+
+            ret = 1;
+        }
+    }
+
+    return ret;
+}
+
+static uint EraseLast(FSRoot* fe, uint bytes)
+{
+    uint ret = 0;
+
+    while( fe->sctNum && bytes )
+    {
+        if( bytes < fe->lastBytes )
+        {
+            fe->lastBytes -= bytes;
+
+            ret += bytes;
+
+            bytes = 0;
+        }
+        else
+        {
+            bytes -= fe->lastBytes;
+
+            ret += fe->lastBytes;
+
+            fe->lastBytes = 0;
+
+            AdjustStorage(fe);
+        }
+    }
+
+    return ret;
+}
+
+static uint DeleteInRoot(const char* name)
+{
+    FSRoot* root = (FSRoot*)ReadSector(ROOT_SCT_IDX);
+    FileEntry* fe = FindInRoot(name);
+    uint ret = 0;
+
+    if( root && fe )
+    {
+        uint last = FindLast(root->sctBegin);
+        FileEntry* feTarget = ReadSector(fe->inSctIdx);
+        FileEntry* feLast = (last != SCT_END_FLAG) ? ReadSector(last) : NULL;
+
+        if( feTarget && feLast )
+        {
+            uint lastOff = root->lastBytes / FE_BYTES - 1;
+            FileEntry* lastItem = AddrOff(feLast, lastOff);
+            FileEntry* targetItem = AddrOff(feTarget, fe->inSctOff);
+
+            FreeFile(targetItem->sctBegin);
+
+            MoveFileEntry(targetItem, lastItem);
+
+            EraseLast(root, FE_BYTES);
+
+            ret = HDRawWrite(ROOT_SCT_IDX, (byte*)root) &&
+                    HDRawWrite(fe->inSctIdx, (byte*)feTarget);
+        }
+
+        Free(feTarget);
+        Free(feLast);
+    }
+
+    Free(root);
+    Free(fe);
+
+    return ret;
+}
+
+
+
+uint FDelete(const char* fn)
+{
+    return fn && !IsOpened(fn) && DeleteInRoot(fn) ? FS_SUCCEED : FS_FAILED;
+}
+
 uint FSFormat()
 {
     FSHeader* header = (FSHeader*)Malloc(SECT_SIZE);
@@ -341,3 +723,64 @@ uint FSIsFormatted()
 
     return ret;
 }
+
+static uint FlushFileEntry(FileEntry* fe)
+{
+    uint ret = 0;
+    FileEntry* feBase = ReadSector(fe->inSctIdx);
+    FileEntry* feInSct = AddrOff(feBase, fe->inSctOff);
+
+    *feInSct = *fe;
+
+    ret = HDRawWrite(fe->inSctIdx, (byte*)feBase);
+
+    Free(feBase);
+
+    return ret;
+}
+
+uint FRename(const char* ofn, const char* nfn)
+{
+    uint ret = FS_FAILED;
+
+    if( ofn && !IsOpened(ofn) && nfn )
+    {
+        FileEntry* ofe = FindInRoot(ofn);
+        FileEntry* nfe = FindInRoot(nfn);
+
+        if( ofe && !nfe )
+        {
+            StrnCpy(ofe->name, nfn, sizeof(ofe->name) - 1);
+
+            if( FlushFileEntry(ofe) )
+            {
+                ret = FS_SUCCEED;
+            }
+        }
+        
+        Free(ofe);
+        Free(nfe);
+    }
+
+    return ret;
+}
+
+// void test()
+// {
+//     FSRoot* root = (FSRoot*)ReadSector(ROOT_SCT_IDX);
+//     FileEntry* feBase = (FileEntry*)ReadSector(root->sctBegin);
+//     int i = 0;
+//     int n = 0;
+
+//     printf("sctNum = %d\n", root->sctNum);
+//     printf("lastBytes = %d\n", root->lastBytes);
+
+//     n = root->lastBytes / FE_BYTES;
+
+//     for(i=0; i<n; i++)
+//     {
+//         FileEntry* fe = AddrOff(feBase, i);
+
+//         printf("name = %s\n", fe->name);
+//     }
+// }
